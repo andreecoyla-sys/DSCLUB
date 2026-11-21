@@ -1,0 +1,58 @@
+body {
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+}
+
+/* Scrollbar minimalista (Modo Claro) */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #ffffff;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #d4d4d4;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #111111;
+}
+
+/* Scrollbar minimalista (Modo Oscuro) */
+html.dark ::-webkit-scrollbar-track {
+    background: #0b0b0b;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+    background: #333333;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+    background: #f5f5f5;
+}
+
+/* Animación sutil del indicador para bajar */
+@keyframes floatSlow {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(6px);
+    }
+}
+
+.animate-float-slow {
+    animation: floatSlow 2.4s ease-in-out infinite;
+}
+
+/* Ocultar barra de scroll horizontal en categorías móviles */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+.env
+db.sqlite3
+respaldo_*.json
+staticfiles/

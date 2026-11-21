@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCLUB | Pedidos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-neutral-50 text-neutral-900 min-h-screen pb-20">
+
+    <header class="sticky top-0 z-30 bg-white border-b border-neutral-200">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'panel_lista' %}" class="font-extrabold tracking-tight text-lg">DSCLUB</a>
+                <span class="text-xs bg-neutral-100 text-neutral-600 px-2.5 py-1 rounded font-semibold">PEDIDOS</span>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-3">
+                <a href="{% url 'panel_lista' %}" class="text-xs font-semibold text-neutral-600 hover:text-black border border-neutral-300 px-3 py-2 transition-colors">
+                    ← Inventario
+                </a>
+                <a href="{% url 'inicio' %}" target="_blank" class="text-xs font-semibold text-neutral-600 hover:text-black border border-neutral-300 px-3 py-2 transition-colors">
+                    Ver Catálogo ↗
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 pt-8">
+        {% if messages %}
+            <div class="mb-6 space-y-2">
+                {% for msg in messages %}
+                    <div class="bg-black text-white text-xs font-medium px-4 py-3">
+                        {{ msg }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Filtros por Estado -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+                <h1 class="text-xl font-bold uppercase tracking-tight">Bandeja de Pedidos</h1>
+                <p class="text-xs text-neutral-500 mt-0.5">Al marcar "Entregado" o "Cancelado", el pedido desaparece de la bandeja activa.</p>
+            </div>
+
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+                <a href="{% url 'panel_pedidos' %}" class="px-3 py-1.5 text-xs font-semibold uppercase whitespace-nowrap {% if estado_actual == 'ACTIVOS' %}bg-black text-white{% else %}bg-white border border-neutral-200 text-neutral-600{% endif %}">
+                    Por Atender ({{ activos_count }})
+                </a>
+                <a href="?estado=PENDIENTE" class="px-3 py-1.5 text-xs font-semibold uppercase whitespace-nowrap {% if estado_actual == 'PENDIENTE' %}bg-black text-white{% else %}bg-white border border-neutral-200 text-neutral-600{% endif %}">
+                    Pendientes ({{ pendientes_count }})
+                </a>
+                <a href="?estado=EMPACADO" class="px-3 py-1.5 text-xs font-semibold uppercase whitespace-nowrap {% if estado_actual == 'EMPACADO' %}bg-black text-white{% else %}bg-white border border-neutral-200 text-neutral-600{% endif %}">
+                    En Envío ({{ empacados_count }})
+                </a>
+                <a href="?estado=ENTREGADO" class="px-3 py-1.5 text-xs font-semibold uppercase whitespace-nowrap {% if estado_actual == 'ENTREGADO' %}bg-black text-white{% else %}bg-white border border-neutral-200 text-neutral-600{% endif %}">
+                    Entregados ({{ entregados_count }})
+                </a>
+                <a href="?estado=CANCELADO" class="px-3 py-1.5 text-xs font-semibold uppercase whitespace-nowrap {% if estado_actual == 'CANCELADO' %}bg-black text-white{% else %}bg-white border border-neutral-200 text-neutral-600{% endif %}">
+                    Cancelados ({{ cancelados_count }})
+                </a>
+            </div>
+        </div>
+
+        {% if pedidos %}
+            <div class="space-y-4">
+                {% for ped in pedidos %}
+                    <div class="bg-white border border-neutral-200 p-5">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-neutral-100">
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="font-extrabold text-sm">{{ ped.codigo }}</span>
+
+                                    <span class="text-[10px] font-bold uppercase px-2.5 py-0.5
+                                        {% if ped.estado == 'PENDIENTE' %}bg-amber-100 text-amber-800
+                                        {% elif ped.estado == 'EMPACADO' %}bg-blue-100 text-blue-800
+                                        {% elif ped.estado == 'ENTREGADO' %}bg-emerald-100 text-emerald-800
+                                        {% else %}bg-neutral-200 text-neutral-600{% endif %}">
+                                        {{ ped.get_estado_display }}
+                                    </span>
+
+                                    <span class="text-[10px] font-bold uppercase px-2.5 py-0.5
+                                        {% if ped.pagado %}bg-emerald-600 text-white{% else %}bg-red-100 text-red-700{% endif %}">
+                                        {% if ped.pagado %}✓ PAGO VERIFICADO{% else %}⏳ PAGO POR VERIFICAR{% endif %}
+                                    </span>
+
+                                    <span class="text-xs text-neutral-400">{{ ped.creado|date:"d/m/Y H:i" }}</span>
+                                </div>
+
+                                <h2 class="font-bold text-base mt-1.5 flex items-center gap-2 flex-wrap">
+                                    <span>{{ ped.cliente_nombre }}</span>
+                                    {% if ped.cliente_telefono %}
+                                        <span class="text-xs font-normal text-neutral-500">· {{ ped.cliente_telefono }}</span>
+                                        <a href="https://wa.me/51{{ ped.cliente_telefono|cut:' '|cut:'-' }}" target="_blank" class="text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 hover:bg-emerald-600 hover:text-white transition-colors">
+                                            Abrir Chat Wpp ↗
+                                        </a>
+                                    {% endif %}
+                                </h2>
+                                <p class="text-xs text-neutral-600 mt-1">
+                                    <strong>{{ ped.tipo_entrega }}</strong>{% if ped.direccion %} — {{ ped.direccion }}{% endif %} · Pago: <strong>{{ ped.metodo_pago }}</strong>
+                                </p>
+                                {% if ped.notas %}
+                                    <p class="text-xs text-neutral-500 mt-0.5">Nota: {{ ped.notas }}</p>
+                                {% endif %}
+                            </div>
+
+                            <div class="sm:text-right">
+                                <span class="text-[11px] uppercase text-neutral-400 block">Total Final</span>
+                                <span class="text-lg font-extrabold">S/ {{ ped.total }}</span>
+                                <span class="text-[11px] text-neutral-500 block">
+                                    Prendas: S/ {{ ped.subtotal_prendas }} · Envío: {% if ped.costo_envio > 0 %}S/ {{ ped.costo_envio }}{% else %}Gratis{% endif %}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Prendas del pedido -->
+                        <div class="py-3 space-y-1.5">
+                            {% for item in ped.items.all %}
+                                <div class="flex items-center justify-between text-xs">
+                                    <span><strong>{{ item.cantidad }}x</strong> {{ item.nombre_producto }} <span class="bg-neutral-100 px-1.5 py-0.5 font-bold ml-1">Talla {{ item.talla }}</span></span>
+                                    <span class="font-semibold">S/ {{ item.subtotal }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Acciones rápidas -->
+                        <div class="pt-3 border-t border-neutral-100 flex flex-wrap items-center justify-between gap-2">
+                            <!-- Botón 1-clic Verificar Pago -->
+                            <form method="post" action="{% url 'panel_pedido_pago' ped.id %}">
+                                {% csrf_token %}
+                                {% if not ped.pagado %}
+                                    <button type="submit" class="text-xs font-bold uppercase px-3.5 py-2 bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer">
+                                        ✓ Confirmar Pago Recibido
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="text-xs font-semibold uppercase px-3 py-1.5 border border-emerald-300 text-emerald-700 hover:bg-emerald-50 cursor-pointer">
+                                        ✓ Pagado (Desmarcar)
+                                    </button>
+                                {% endif %}
+                            </form>
+
+                            <!-- Botones de flujo de envío / archivo -->
+                            <div class="flex flex-wrap items-center gap-2">
+                                {% if ped.estado == 'PENDIENTE' %}
+                                    <form method="post" action="{% url 'panel_pedido_estado' ped.id 'EMPACADO' %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-xs font-bold uppercase px-3.5 py-2 bg-black text-white hover:bg-neutral-800 cursor-pointer">
+                                            📦 Iniciar Envío / Empacado (Descuenta Stock)
+                                        </button>
+                                    </form>
+                                {% endif %}
+
+                                {% if ped.estado != 'ENTREGADO' and ped.estado != 'CANCELADO' %}
+                                    <form method="post" action="{% url 'panel_pedido_estado' ped.id 'ENTREGADO' %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-xs font-bold uppercase px-3.5 py-2 border border-black text-black hover:bg-black hover:text-white cursor-pointer">
+                                            ✓ Marcar Entregado (Archivar)
+                                        </button>
+                                    </form>
+                                {% endif %}
+
+                                {% if ped.estado != 'CANCELADO' and ped.estado != 'ENTREGADO' %}
+                                    <form method="post" action="{% url 'panel_pedido_estado' ped.id 'CANCELADO' %}" onsubmit="return confirm('¿Cancelar este pedido?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-xs font-semibold uppercase px-3 py-1.5 text-red-600 hover:bg-red-50 cursor-pointer">
+                                            Cancelar
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form method="post" action="{% url 'panel_pedido_estado' ped.id 'ELIMINAR' %}" onsubmit="return confirm('¿Borrar definitivamente este pedido del historial?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-xs font-semibold uppercase px-3 py-1.5 text-red-600 hover:bg-red-50 cursor-pointer">
+                                            Borrar del historial
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-white border border-neutral-200 py-16 px-4 text-center">
+                <p class="text-sm font-bold uppercase">¡Todo al día! No hay pedidos pendientes</p>
+                <p class="text-xs text-neutral-500 mt-1">Los pedidos entregados o cancelados se archivan en sus respectivas pestañas.</p>
+            </div>
+        {% endif %}
+    </main>
+</body>
+</html>
