@@ -1,4 +1,13 @@
 const PRODUCTS = typeof DJANGO_PRODUCTS !== 'undefined' ? DJANGO_PRODUCTS : [];
+const DELIVERY_FEE = typeof TARIFA_DELIVERY !== 'undefined' ? Number(TARIFA_DELIVERY) || 0 : 0;
+const PROVINCIA_FEE = typeof TARIFA_PROVINCIA !== 'undefined' ? Number(TARIFA_PROVINCIA) || 0 : 0;
+
+let savedFavs = [];
+try {
+    savedFavs = JSON.parse(localStorage.getItem('dsclub-favorites') || '[]');
+} catch (e) {
+    savedFavs = [];
+}
 
 let state = {
     category: 'ALL',
@@ -6,7 +15,7 @@ let state = {
     search: '',
     sort: 'featured',
     onlyFavs: false,
-    favorites: new Set(),
+    favorites: new Set(savedFavs),
     cart: JSON.parse(localStorage.getItem('dsclub-cart') || '[]'),
     activeModalProduct: null,
     selectedModalSize: null,
@@ -34,7 +43,16 @@ function formatPrice(value) {
 }
 
 function getCostoEnvioActual() {
+    const entregaEl = document.getElementById('chk-entrega');
+    const tipo = entregaEl ? entregaEl.value : 'Delivery';
+    if (tipo === 'Delivery') return DELIVERY_FEE;
+    if (tipo === 'Envío provincia') return PROVINCIA_FEE;
     return 0;
+}
+
+function saveFavorites() {
+    localStorage.setItem('dsclub-favorites', JSON.stringify(Array.from(state.favorites)));
+    updateFavBadge();
 }
 
 function saveCart() {
@@ -149,9 +167,17 @@ window.toggleFavorite = function(id, event) {
     } else {
         state.favorites.add(id);
     }
-    updateFavBadge();
+    saveFavorites();
     renderProducts();
 };
+
+function closeAllOverlays() {
+    const modalEl = document.getElementById('product-modal');
+    const drawerEl = document.getElementById('cart-drawer');
+    if (modalEl) modalEl.classList.add('hidden');
+    if (drawerEl) drawerEl.classList.add('hidden');
+    document.body.style.overflow = '';
+}
 
 window.openProductModal = function(id) {
     const product = PRODUCTS.find(p => p.id === id);
@@ -265,27 +291,31 @@ if (modalAddCartBtn) {
 
 const closeModalBtn = document.getElementById('close-modal-btn');
 if (closeModalBtn) {
-    closeModalBtn.addEventListener('click', () => {
-        document.getElementById('product-modal').classList.add('hidden');
-        document.body.style.overflow = '';
-    });
+    closeModalBtn.addEventListener('click', closeAllOverlays);
 }
 
 const productModalEl = document.getElementById('product-modal');
 if (productModalEl) {
     productModalEl.addEventListener('click', (e) => {
         if (e.target.id === 'product-modal') {
-            productModalEl.classList.add('hidden');
-            document.body.style.overflow = '';
+            closeAllOverlays();
         }
     });
 }
+
+// Cerrar modal o carrito con tecla Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeAllOverlays();
+    }
+});
 
 // =========================================================
 // CARRITO LATERAL Y ENVÍO DE PEDIDO
 // =========================================================
 function renderCart() {
     const container = document.getElementById('cart-items-container');
+    const continueBox = document.getElementById('continue-shopping-box');
     const checkoutBox = document.getElementById('checkout-form-box');
     const footerBox = document.getElementById('cart-footer');
     const subtitle = document.getElementById('cart-subtitle');
@@ -302,17 +332,22 @@ function renderCart() {
     if (state.cart.length === 0) {
         if (container) {
             container.innerHTML = `
-                <div class="py-14 text-center">
+                <div class="py-14 text-center space-y-3">
                     <p class="text-xs font-bold uppercase tracking-wider text-neutral-500">Tu carrito está vacío</p>
-                    <p class="text-[11px] text-neutral-400 mt-1">Selecciona cualquier prenda del catálogo para agregarla.</p>
+                    <p class="text-[11px] text-neutral-400">Selecciona cualquier prenda del catálogo para agregarla.</p>
+                    <button type="button" onclick="closeAllOverlays()" class="mt-2 border border-black dark:border-white px-5 py-2 text-[11px] font-bold uppercase tracking-wider hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors cursor-pointer">
+                        Explorar catálogo
+                    </button>
                 </div>
             `;
         }
+        if (continueBox) continueBox.classList.add('hidden');
         if (checkoutBox) checkoutBox.classList.add('hidden');
         if (footerBox) footerBox.classList.add('hidden');
         return;
     }
 
+    if (continueBox) continueBox.classList.remove('hidden');
     if (checkoutBox) checkoutBox.classList.remove('hidden');
     if (footerBox) footerBox.classList.remove('hidden');
 
@@ -344,13 +379,28 @@ function renderCart() {
         }).join('');
     }
 
-    const totalFinal = subtotalPrendas;
+    const entregaEl = document.getElementById('chk-entrega');
+    const tipoEntrega = entregaEl ? entregaEl.value : 'Delivery';
+    const costoEnvio = getCostoEnvioActual();
+    const totalFinal = subtotalPrendas + costoEnvio;
 
     if (subtotalEl) subtotalEl.textContent = formatPrice(subtotalPrendas);
-    if (shippingLabelEl) shippingLabelEl.textContent = 'Envío';
-    if (shippingEl) shippingEl.textContent = 'GRATIS';
+    if (shippingLabelEl) shippingLabelEl.textContent = `Envío (${tipoEntrega})`;
+
+    if (shippingEl) {
+        if (tipoEntrega === 'Recojo en tienda') {
+            shippingEl.textContent = 'Sin costo';
+        } else if (costoEnvio > 0) {
+            shippingEl.textContent = formatPrice(costoEnvio);
+        } else {
+            shippingEl.textContent = 'A coordinar por Wpp';
+        }
+    }
+
     if (totalEl) totalEl.textContent = formatPrice(totalFinal);
 }
+
+window.closeAllOverlays = closeAllOverlays;
 
 window.updateCartQty = function(index, delta) {
     const item = state.cart[index];
@@ -380,18 +430,19 @@ if (openCartBtn) {
 
 const closeCartBtn = document.getElementById('close-cart-btn');
 if (closeCartBtn) {
-    closeCartBtn.addEventListener('click', () => {
-        document.getElementById('cart-drawer').classList.add('hidden');
-        document.body.style.overflow = '';
-    });
+    closeCartBtn.addEventListener('click', closeAllOverlays);
+}
+
+const continueShoppingBtn = document.getElementById('continue-shopping-btn');
+if (continueShoppingBtn) {
+    continueShoppingBtn.addEventListener('click', closeAllOverlays);
 }
 
 const cartDrawerEl = document.getElementById('cart-drawer');
 if (cartDrawerEl) {
     cartDrawerEl.addEventListener('click', (e) => {
         if (e.target.id === 'cart-drawer') {
-            cartDrawerEl.classList.add('hidden');
-            document.body.style.overflow = '';
+            closeAllOverlays();
         }
     });
 }
@@ -400,12 +451,14 @@ if (cartDrawerEl) {
 const entregaSelect = document.getElementById('chk-entrega');
 const direccionWrapper = document.getElementById('chk-direccion-wrapper');
 const provinciaWrapper = document.getElementById('chk-provincia-wrapper');
+const telRequiredMark = document.getElementById('tel-required-mark');
 
 function actualizarCamposEntrega() {
     if (entregaSelect) {
         const tipo = entregaSelect.value;
         if (direccionWrapper) direccionWrapper.classList.toggle('hidden', tipo !== 'Delivery');
         if (provinciaWrapper) provinciaWrapper.classList.toggle('hidden', tipo !== 'Envío provincia');
+        if (telRequiredMark) telRequiredMark.classList.toggle('hidden', tipo === 'Recojo en tienda');
     }
     renderCart();
 }
@@ -447,6 +500,7 @@ if (sendWhatsappBtn) {
 
         const nombre = nombreEl ? nombreEl.value.trim() : '';
         const telefono = telefonoEl ? telefonoEl.value.trim() : '';
+        const telSoloDigitos = telefono.replace(/\D/g, '');
         const entrega = entregaSelect ? entregaSelect.value : 'Recojo en tienda';
         const direccion = direccionEl ? direccionEl.value.trim() : '';
         const provincia = provinciaEl ? provinciaEl.value.trim() : '';
@@ -458,6 +512,18 @@ if (sendWhatsappBtn) {
         if (!nombre) {
             alert('Por favor escribe tu nombre para registrar tu pedido.');
             if (nombreEl) nombreEl.focus();
+            return;
+        }
+
+        if (entrega !== 'Recojo en tienda' && telSoloDigitos.length < 9) {
+            alert('Por favor ingresa un número de teléfono / WhatsApp válido (mínimo 9 dígitos) para coordinar tu entrega.');
+            if (telefonoEl) telefonoEl.focus();
+            return;
+        }
+
+        if (entrega === 'Delivery' && !direccion) {
+            alert('Por favor ingresa tu dirección o punto de referencia para el delivery.');
+            if (direccionEl) direccionEl.focus();
             return;
         }
 
@@ -505,8 +571,7 @@ if (sendWhatsappBtn) {
             if (data.ok && data.whatsapp_url) {
                 state.cart = [];
                 saveCart();
-                document.getElementById('cart-drawer').classList.add('hidden');
-                document.body.style.overflow = '';
+                closeAllOverlays();
                 window.open(data.whatsapp_url, '_blank');
             } else {
                 alert(data.error || 'Ocurrió un problema al procesar el pedido.');
@@ -649,5 +714,6 @@ if (grid4Btn && grid3Btn && gridEl) {
     });
 }
 
+updateFavBadge();
 updateCartBadge();
 renderProducts();

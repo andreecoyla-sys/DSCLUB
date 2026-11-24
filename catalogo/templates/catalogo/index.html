@@ -34,7 +34,7 @@
 </head>
 <body class="bg-white dark:bg-[#0B0B0B] text-[#111111] dark:text-[#F5F5F5] antialiased selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black transition-colors duration-300">
 
-    <!-- 1. PANTALLA INICIAL COMPLETA CON LOGO DSCLUB (100dvh para iOS Safari) -->
+    <!-- 1. PANTALLA INICIAL COMPLETA CON LOGO DSCLUB -->
     <section id="hero-logo" class="relative w-full h-[100dvh] flex flex-col items-center justify-center bg-white dark:bg-[#0B0B0B] px-6 select-none transition-colors duration-300">
         <div class="w-full max-w-[330px] sm:max-w-[430px] md:max-w-[500px] aspect-square flex items-center justify-center transition-transform duration-700 hover:scale-[1.015]">
             <svg viewBox="0 0 600 600" class="w-full h-full drop-shadow-[0_10px_35px_rgba(0,0,0,0.03)] dark:drop-shadow-[0_10px_40px_rgba(255,255,255,0.04)]" xmlns="http://www.w3.org/2000/svg">
@@ -125,7 +125,7 @@
     </header>
 
     <!-- 3. SECCIÓN DEL CATÁLOGO / STOCK -->
-    <main id="catalogo" class="max-w-[1440px] mx-auto px-4 sm:px-8 pt-10 pb-24">
+    <main id="catalogo" class="max-w-[1440px] mx-auto px-4 sm:px-8 pt-10 pb-20">
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
             <div>
                 <p class="text-[11px] font-semibold tracking-[0.2em] uppercase text-neutral-400 dark:text-neutral-500 mb-1">DSCLUB / STOCK DISPONIBLE</p>
@@ -198,21 +198,56 @@
         </div>
     </main>
 
-    <!-- MODAL DE SELECCIÓN DE TALLA Y AGREGAR AL CARRITO (OPTIMIZADO PARA CELULARES) -->
+    <!-- 4. PIE DE PÁGINA MINIMALISTA -->
+    <footer class="border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/60 dark:bg-[#0E0E0E] transition-colors duration-300">
+        <div class="max-w-[1440px] mx-auto px-4 sm:px-8 py-12 grid grid-cols-1 sm:grid-cols-3 gap-8 text-xs">
+            <div class="space-y-2.5">
+                <p class="font-extrabold tracking-[0.18em] uppercase text-sm text-black dark:text-white">DSCLUB</p>
+                <p class="text-neutral-500 dark:text-neutral-400 leading-relaxed max-w-xs">
+                    Streetwear & básicos esenciales. Envíos seguros a todo el Perú y entregas locales coordinadas.
+                </p>
+            </div>
+
+            <div class="space-y-2">
+                <p class="font-bold uppercase tracking-wider text-[11px] text-neutral-400">Información</p>
+                <ul class="space-y-1.5 text-neutral-600 dark:text-neutral-400">
+                    <li>• Pagos vía Yape, Plin, Transferencia o Contraentrega</li>
+                    <li>• Cambios de talla sujetos a disponibilidad de stock</li>
+                    <li>• Envíos a provincia por Shalom, Olva y Marvisur</li>
+                </ul>
+            </div>
+
+            <div class="space-y-2.5">
+                <p class="font-bold uppercase tracking-wider text-[11px] text-neutral-400">Atención directa</p>
+                <div class="flex flex-wrap gap-2.5 pt-1">
+                    <a href="https://wa.me/51987532146?text=Hola%20DSCLUB%2C%20tengo%20una%20consulta%20sobre%20una%20prenda" target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-2 border border-black dark:border-white px-4 py-2 text-[11px] font-bold uppercase tracking-wider hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors">
+                        <span>WhatsApp</span>
+                    </a>
+                    <a href="#hero-logo"
+                       class="inline-flex items-center gap-2 border border-neutral-300 dark:border-neutral-700 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-600 dark:text-neutral-300 hover:border-black dark:hover:border-white transition-colors">
+                        <span>Subir ↑</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="border-t border-neutral-200/70 dark:border-neutral-800/70 py-4 text-center text-[11px] text-neutral-400">
+            © 2026 DSCLUB. Todos los derechos reservados.
+        </div>
+    </footer>
+
+    <!-- MODAL DE SELECCIÓN DE TALLA Y AGREGAR AL CARRITO -->
     <div id="product-modal" class="fixed inset-0 z-50 hidden bg-black/60 dark:bg-black/80 backdrop-blur-[2px] overflow-y-auto overscroll-contain flex items-start sm:items-center justify-center p-3 sm:p-4">
         <div class="bg-white dark:bg-[#141414] border border-transparent dark:border-neutral-800 max-w-2xl w-full grid grid-cols-1 sm:grid-cols-2 sm:overflow-hidden shadow-2xl relative my-auto">
             
-            <!-- Botón cerrar -->
             <button id="close-modal-btn" class="fixed sm:absolute top-5 right-5 sm:top-3 sm:right-3 z-20 w-8 h-8 bg-white/95 dark:bg-[#1F1F1F]/95 text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex items-center justify-center transition-colors cursor-pointer shadow-md sm:shadow-none">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
 
-            <!-- Imagen -->
             <div class="bg-[#F3F3F3] dark:bg-[#1C1C1C] h-64 sm:h-auto sm:aspect-[4/5] flex items-center justify-center p-4 sm:p-6">
                 <img id="modal-img" src="" alt="" class="w-full h-full object-contain sm:object-cover">
             </div>
 
-            <!-- Info + Tallas + Cantidad + Botón -->
             <div class="p-5 sm:p-8 flex flex-col justify-between">
                 <div>
                     <span id="modal-tag" class="text-[11px] font-bold tracking-widest uppercase text-neutral-500 dark:text-neutral-400">NEW IN</span>
@@ -238,7 +273,6 @@
                     </div>
                 </div>
 
-                <!-- Botón siempre visible al hacer scroll -->
                 <div class="sticky bottom-0 bg-white dark:bg-[#141414] mt-5 pt-3 pb-2 sm:static sm:mt-6 sm:pt-4 sm:pb-0 border-t border-neutral-100 dark:border-neutral-800 z-10">
                     <button id="modal-add-cart-btn" class="w-full bg-black dark:bg-white text-white dark:text-black py-3.5 px-4 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors cursor-pointer">
                         <span>Agregar al Carrito</span>
@@ -265,6 +299,13 @@
             <div class="flex-1 overflow-y-auto p-5 space-y-6">
                 <div id="cart-items-container" class="space-y-4"></div>
 
+                <!-- Botón secundario para seguir agregando prendas -->
+                <div id="continue-shopping-box" class="hidden">
+                    <button type="button" id="continue-shopping-btn" class="w-full border border-neutral-300 dark:border-neutral-700 py-2.5 px-4 text-[11px] font-bold uppercase tracking-wider text-neutral-700 dark:text-neutral-300 hover:border-black dark:hover:border-white transition-colors cursor-pointer">
+                        ← Seguir viendo más prendas
+                    </button>
+                </div>
+
                 <!-- Formulario rápido -->
                 <div id="checkout-form-box" class="hidden pt-5 border-t border-neutral-200 dark:border-neutral-800 space-y-3.5">
                     <p class="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Datos para alistar tu pedido</p>
@@ -276,7 +317,7 @@
 
                     <div class="grid grid-cols-2 gap-2.5">
                         <div>
-                            <label class="block text-[11px] font-semibold uppercase mb-1">Teléfono / Wpp</label>
+                            <label class="block text-[11px] font-semibold uppercase mb-1">Teléfono / Wpp <span id="tel-required-mark" class="text-red-500">*</span></label>
                             <input id="chk-telefono" type="tel" placeholder="987 654 321" class="w-full border border-neutral-300 dark:border-neutral-700 bg-transparent px-3 py-2 text-xs outline-none focus:border-black dark:focus:border-white">
                         </div>
                         <div>
@@ -291,7 +332,7 @@
 
                     <!-- Delivery -->
                     <div id="chk-direccion-wrapper">
-                        <label class="block text-[11px] font-semibold uppercase mb-1">Dirección / Referencia</label>
+                        <label class="block text-[11px] font-semibold uppercase mb-1">Dirección / Referencia *</label>
                         <input id="chk-direccion" type="text" placeholder="Ej: Av. Principal 123 / Punto de encuentro" class="w-full border border-neutral-300 dark:border-neutral-700 bg-transparent px-3 py-2 text-xs outline-none focus:border-black dark:focus:border-white">
                     </div>
 
@@ -327,7 +368,7 @@
                         </select>
                     </div>
 
-                    <!-- Tarjeta con datos de Yape/Plin para facilitar el pago -->
+                    <!-- Tarjeta con datos de Yape/Plin -->
                     <div id="pago-info-box" class="bg-neutral-100 dark:bg-[#1A1A1A] border border-neutral-200 dark:border-neutral-800 p-3 text-[11px] space-y-1.5">
                         <div class="flex items-center justify-between">
                             <span class="font-bold uppercase">Yape / Plin DSCLUB:</span>
@@ -344,11 +385,15 @@
                 </div>
             </div>
 
-            <!-- Pie con Total de Prendas -->
-            <div id="cart-footer" class="hidden p-5 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#161616] space-y-2.5">
+            <!-- Pie con Desglose y Total -->
+            <div id="cart-footer" class="hidden p-5 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#161616] space-y-2">
                 <div class="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
-                    <span>Modalidad de entrega</span>
-                    <span id="cart-shipping-label" class="font-semibold text-black dark:text-white">Delivery</span>
+                    <span>Subtotal prendas</span>
+                    <span id="cart-subtotal" class="font-medium text-black dark:text-white">S/ 0.00</span>
+                </div>
+                <div class="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
+                    <span id="cart-shipping-label">Envío (Delivery)</span>
+                    <span id="cart-shipping" class="font-semibold text-black dark:text-white">GRATIS</span>
                 </div>
                 <div class="flex items-center justify-between text-sm font-bold pt-2 border-t border-neutral-200 dark:border-neutral-800">
                     <span class="uppercase tracking-wider">Total a Pagar</span>
