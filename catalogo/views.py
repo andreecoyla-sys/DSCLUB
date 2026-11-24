@@ -6,6 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Sum
 from django.db.models.deletion import ProtectedError
 from django.views.decorators.http import require_POST
 from .models import Producto, Categoria, Pedido, DetallePedido
@@ -16,10 +17,12 @@ WHATSAPP_TIENDA = '51987532146'
 TARIFA_DELIVERY = Decimal('0.00')
 TARIFA_PROVINCIA = Decimal('0.00')
 
+
 def asegurar_categorias_base():
     if not Categoria.objects.exists():
         for i, nombre in enumerate(['POLOS', 'SHORES', 'BUSOS', 'POLERAS', 'JEAN'], start=1):
             Categoria.objects.create(nombre=nombre, orden=i)
+
 
 def _combinar_tallas(tallas_check, tallas_extra_raw):
     resultado = []
@@ -33,6 +36,7 @@ def _combinar_tallas(tallas_check, tallas_extra_raw):
             if t_clean and t_clean not in resultado:
                 resultado.append(t_clean)
     return ', '.join(resultado) if resultado else 'ÚNICA'
+
 
 def inicio(request):
     asegurar_categorias_base()
@@ -63,7 +67,6 @@ def inicio(request):
             'description': p.descripcion,
         })
 
-    # Ordena primero las tallas base conocidas y luego cualquier talla nueva creada por el dueño
     tallas_filtro = [t for t in TALLAS_BASE if t in tallas_en_stock] + [
         t for t in tallas_en_stock if t not in TALLAS_BASE
     ]
@@ -75,6 +78,7 @@ def inicio(request):
         'tarifa_delivery': float(TARIFA_DELIVERY),
         'tarifa_provincia': float(TARIFA_PROVINCIA),
     })
+
 
 @require_POST
 def crear_pedido(request):
@@ -117,6 +121,31 @@ def crear_pedido(request):
         destino_final = direccion
 
     with transaction.atomic():
+        items_validados = []
+        for item in items:
+            prod = Producto.objects.filter(pk=item.get('id'), activo=True).first()
+            cantidad = max(1, int(item.get('qty', 1)))
+            talla = str(item.get('size', 'ÚNICA')).upper()
+
+            if prod:
+                if prod.stock <= 0:
+                    return JsonResponse({
+                        'ok': False,
+                        'error': f'Lo sentimos, "{prod.nombre}" acaba de agotarse.'
+                    }, status=400)
+                if cantidad > prod.stock:
+                    return JsonResponse({
+                        'ok': False,
+                        'error': f'Solo quedan {prod.stock} unidades disponibles de "{prod.nombre}".'
+                    }, status=400)
+                nombre_prod = prod.nombre
+                precio_unit = prod.precio
+            else:
+                nombre_prod = str(item.get('name', 'Prenda'))
+                precio_unit = Decimal(str(item.get('price', 0)))
+
+            items_validados.append((prod, nombre_prod, talla, cantidad, precio_unit))
+
         pedido = Pedido.objects.create(
             cliente_nombre=cliente_nombre,
             cliente_telefono=cliente_telefono,
@@ -130,18 +159,7 @@ def crear_pedido(request):
         subtotal_prendas = Decimal('0.00')
         lineas_wpp = []
 
-        for item in items:
-            prod = Producto.objects.filter(pk=item.get('id'), activo=True).first()
-            cantidad = max(1, int(item.get('qty', 1)))
-            talla = str(item.get('size', 'ÚNICA')).upper()
-
-            if prod:
-                nombre_prod = prod.nombre
-                precio_unit = prod.precio
-            else:
-                nombre_prod = str(item.get('name', 'Prenda'))
-                precio_unit = Decimal(str(item.get('price', 0)))
-
+        for prod, nombre_prod, talla, cantidad, precio_unit in items_validados:
             subtotal = precio_unit * cantidad
             subtotal_prendas += subtotal
 
@@ -177,6 +195,13 @@ def crear_pedido(request):
     else:
         bloque_destino = ""
 
+    if tipo_entrega == 'Recojo en tienda':
+        texto_envio = "Sin costo"
+    elif costo_envio > 0:
+        texto_envio = f"S/ {costo_envio:.2f}"
+    else:
+        texto_envio = "A coordinar"
+
     aviso_comprobante = (
         "\n\n_Adjunto mi captura de pago aquí abajo para confirmar mi envío:_"
         if metodo_pago in {'YAPE / PLIN', 'TRANSFERENCIA'}
@@ -193,6 +218,7 @@ def crear_pedido(request):
         f"*PRENDAS:*\n"
         f"{detalle_texto}\n"
         f"--------------------------------\n"
+        f"*Envío:* {texto_envio}\n"
         f"*TOTAL PRENDAS: S/ {total_final:.2f}*"
         f"{aviso_comprobante}"
     )
@@ -204,6 +230,7 @@ def crear_pedido(request):
         'codigo': pedido.codigo,
         'whatsapp_url': whatsapp_url,
     })
+
 
 @login_required(login_url='/admin/login/')
 def panel_lista(request):
@@ -222,6 +249,7 @@ def panel_lista(request):
         'pedidos_pendientes': Pedido.objects.filter(estado__in=['PENDIENTE', 'EMPACADO']).count(),
     })
 
+
 @login_required(login_url='/admin/login/')
 def panel_pedidos(request):
     estado = request.GET.get('estado', 'ACTIVOS')
@@ -232,6 +260,10 @@ def panel_pedidos(request):
     elif estado != 'ALL':
         pedidos = pedidos.filter(estado=estado)
 
+    ingresos_cobrados = Pedido.objects.filter(pagado=True).exclude(estado='CANCELADO').aggregate(
+        total=Sum('total')
+    )['total'] or Decimal('0.00')
+
     return render(request, 'catalogo/panel_pedidos.html', {
         'pedidos': pedidos,
         'estado_actual': estado,
@@ -240,7 +272,9 @@ def panel_pedidos(request):
         'empacados_count': Pedido.objects.filter(estado='EMPACADO').count(),
         'entregados_count': Pedido.objects.filter(estado='ENTREGADO').count(),
         'cancelados_count': Pedido.objects.filter(estado='CANCELADO').count(),
+        'ingresos_cobrados': ingresos_cobrados,
     })
+
 
 @login_required(login_url='/admin/login/')
 @require_POST
@@ -250,23 +284,27 @@ def panel_pedido_pago(request, pk):
     pedido.save()
     estado_txt = "PAGADO (Verificado)" if pedido.pagado else "POR VERIFICAR"
     messages.success(request, f'Pago de {pedido.codigo} marcado como {estado_txt}.')
-    return redirect('panel_pedidos')
+    return redirect(request.META.get('HTTP_REFERER') or 'panel_pedidos')
+
 
 @login_required(login_url='/admin/login/')
 @require_POST
 def panel_pedido_estado(request, pk, nuevo_estado):
-    pedido = get_object_or_404(Pedido, pk=pk)
+    next_url = request.META.get('HTTP_REFERER') or 'panel_pedidos'
 
     if nuevo_estado == 'ELIMINAR':
+        pedido = get_object_or_404(Pedido, pk=pk)
         codigo = pedido.codigo
         pedido.delete()
         messages.success(request, f'Pedido {codigo} eliminado del historial.')
-        return redirect('panel_pedidos')
+        return redirect(next_url)
 
     estados_validos = {'PENDIENTE', 'EMPACADO', 'ENTREGADO', 'CANCELADO'}
 
     if nuevo_estado in estados_validos:
         with transaction.atomic():
+            pedido = get_object_or_404(Pedido.objects.select_for_update(), pk=pk)
+
             if nuevo_estado in {'EMPACADO', 'ENTREGADO'} and not pedido.stock_descontado:
                 for item in pedido.items.select_related('producto').all():
                     if item.producto:
@@ -285,7 +323,8 @@ def panel_pedido_estado(request, pk, nuevo_estado):
             pedido.save()
             messages.success(request, f'Pedido {pedido.codigo} actualizado a {pedido.get_estado_display()}.')
 
-    return redirect('panel_pedidos')
+    return redirect(next_url)
+
 
 @login_required(login_url='/admin/login/')
 def panel_categorias(request):
@@ -316,17 +355,18 @@ def panel_categorias(request):
         'categorias': Categoria.objects.all(),
     })
 
+
 @login_required(login_url='/admin/login/')
 def panel_crear(request):
     asegurar_categorias_base()
-    categorias = Categoria.objects.filter(activa=True)
+    categorias = Categoria.objects.all()
 
     if request.method == 'POST':
         nombre = request.POST.get('nombre', '').strip()
         categoria_id = request.POST.get('categoria')
         etiqueta = request.POST.get('etiqueta', 'NEW IN')
-        precio_raw = request.POST.get('precio', '0')
-        precio_ant_raw = request.POST.get('precio_anterior', '').strip()
+        precio_raw = request.POST.get('precio', '0').replace(',', '.')
+        precio_ant_raw = request.POST.get('precio_anterior', '').strip().replace(',', '.')
         stock = int(request.POST.get('stock', 1) or 0)
         tallas_sel = request.POST.getlist('tallas')
         tallas_extra = request.POST.get('tallas_personalizadas', '')
@@ -375,10 +415,11 @@ def panel_crear(request):
         'tallas_personalizadas': '',
     })
 
+
 @login_required(login_url='/admin/login/')
 def panel_editar(request, pk):
     producto = get_object_or_404(Producto, pk=pk)
-    categorias = Categoria.objects.filter(activa=True)
+    categorias = Categoria.objects.all()
 
     if request.method == 'POST':
         producto.nombre = request.POST.get('nombre', producto.nombre).strip()
@@ -394,11 +435,11 @@ def panel_editar(request, pk):
         producto.activo = request.POST.get('activo') == 'on'
 
         try:
-            producto.precio = Decimal(request.POST.get('precio', producto.precio))
+            producto.precio = Decimal(request.POST.get('precio', str(producto.precio)).replace(',', '.'))
         except InvalidOperation:
             pass
 
-        precio_ant_raw = request.POST.get('precio_anterior', '').strip()
+        precio_ant_raw = request.POST.get('precio_anterior', '').strip().replace(',', '.')
         if precio_ant_raw:
             try:
                 producto.precio_anterior = Decimal(precio_ant_raw)
@@ -426,6 +467,7 @@ def panel_editar(request, pk):
         'tallas_personalizadas': ', '.join(tallas_custom),
     })
 
+
 @login_required(login_url='/admin/login/')
 def panel_stock_rapido(request, pk, accion):
     if request.method == 'POST':
@@ -437,7 +479,8 @@ def panel_stock_rapido(request, pk, accion):
         elif accion == 'toggle':
             producto.activo = not producto.activo
         producto.save()
-    return redirect('panel_lista')
+    return redirect(request.META.get('HTTP_REFERER') or 'panel_lista')
+
 
 @login_required(login_url='/admin/login/')
 def panel_eliminar(request, pk):
@@ -446,4 +489,4 @@ def panel_eliminar(request, pk):
         nombre = producto.nombre
         producto.delete()
         messages.success(request, f'Se eliminó "{nombre}".')
-    return redirect('panel_lista')
+    return redirect(request.META.get('HTTP_REFERER') or 'panel_lista')

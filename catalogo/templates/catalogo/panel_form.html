@@ -88,14 +88,14 @@
                 <div>
                     <label for="precio" class="block text-xs font-bold uppercase tracking-wider mb-2">Precio Actual (S/) *</label>
                     <input type="number" step="0.01" min="0" id="precio" name="precio" required
-                        value="{{ producto.precio|stringformat:'.2f'|default:'' }}" placeholder="89.00"
+                        value="{% if producto %}{{ producto.precio|stringformat:'f' }}{% endif %}" placeholder="89.00"
                         class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2.5 text-sm">
                 </div>
 
                 <div>
                     <label for="precio_anterior" class="block text-xs font-bold uppercase tracking-wider mb-2">Precio Antes (Opcional)</label>
                     <input type="number" step="0.01" min="0" id="precio_anterior" name="precio_anterior"
-                        value="{% if producto.precio_anterior %}{{ producto.precio_anterior|stringformat:'.2f' }}{% endif %}" placeholder="Ej: 119.00"
+                        value="{% if producto and producto.precio_anterior %}{{ producto.precio_anterior|stringformat:'f' }}{% endif %}" placeholder="Ej: 119.00"
                         class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2.5 text-sm">
                     <p class="text-[10px] text-neutral-400 mt-1">Se mostrará tachado como oferta.</p>
                 </div>

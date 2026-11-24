@@ -1,4 +1,6 @@
+import re
 from django.db import models
+
 
 class Categoria(models.Model):
     nombre = models.CharField(max_length=50, unique=True)
@@ -97,6 +99,15 @@ class Pedido(models.Model):
     @property
     def subtotal_prendas(self):
         return max(0, self.total - self.costo_envio)
+
+    @property
+    def whatsapp_link(self):
+        digitos = re.sub(r'\D', '', self.cliente_telefono or '')
+        if not digitos:
+            return ''
+        if len(digitos) == 9:
+            digitos = '51' + digitos
+        return f"https://wa.me/{digitos}"
 
     def __str__(self):
         return f"{self.codigo} - {self.cliente_nombre}"

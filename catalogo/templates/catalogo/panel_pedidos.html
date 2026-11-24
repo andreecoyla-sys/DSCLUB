@@ -21,7 +21,7 @@
                     ← Inventario
                 </a>
                 <a href="{% url 'inicio' %}" target="_blank" class="text-xs font-semibold text-neutral-600 hover:text-black border border-neutral-300 px-3 py-2 transition-colors">
-                    Ver Catálogo ↗
+                    Tienda ↗
                 </a>
             </div>
         </div>
@@ -38,11 +38,13 @@
             </div>
         {% endif %}
 
-        <!-- Filtros por Estado -->
+        <!-- Filtros por Estado y Resumen -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
                 <h1 class="text-xl font-bold uppercase tracking-tight">Bandeja de Pedidos</h1>
-                <p class="text-xs text-neutral-500 mt-0.5">Al marcar "Entregado" o "Cancelado", el pedido desaparece de la bandeja activa.</p>
+                <p class="text-xs text-neutral-500 mt-0.5">
+                    Ventas cobradas verificadas: <strong class="text-black">S/ {{ ingresos_cobrados }}</strong>
+                </p>
             </div>
 
             <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
@@ -93,9 +95,11 @@
                                     <span>{{ ped.cliente_nombre }}</span>
                                     {% if ped.cliente_telefono %}
                                         <span class="text-xs font-normal text-neutral-500">· {{ ped.cliente_telefono }}</span>
-                                        <a href="https://wa.me/51{{ ped.cliente_telefono|cut:' '|cut:'-' }}" target="_blank" class="text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 hover:bg-emerald-600 hover:text-white transition-colors">
-                                            Abrir Chat Wpp ↗
-                                        </a>
+                                        {% if ped.whatsapp_link %}
+                                            <a href="{{ ped.whatsapp_link }}" target="_blank" class="text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 hover:bg-emerald-600 hover:text-white transition-colors">
+                                                Abrir Chat Wpp ↗
+                                            </a>
+                                        {% endif %}
                                     {% endif %}
                                 </h2>
                                 <p class="text-xs text-neutral-600 mt-1">
@@ -107,10 +111,13 @@
                             </div>
 
                             <div class="sm:text-right">
-                                <span class="text-[11px] uppercase text-neutral-400 block">Total Final</span>
+                                <span class="text-[11px] uppercase text-neutral-400 block">Total Prendas</span>
                                 <span class="text-lg font-extrabold">S/ {{ ped.total }}</span>
                                 <span class="text-[11px] text-neutral-500 block">
-                                    Prendas: S/ {{ ped.subtotal_prendas }} · Envío: {% if ped.costo_envio > 0 %}S/ {{ ped.costo_envio }}{% else %}Gratis{% endif %}
+                                    Prendas: S/ {{ ped.subtotal_prendas }} · Envío:
+                                    {% if ped.tipo_entrega == 'Recojo en tienda' %}Sin costo
+                                    {% elif ped.costo_envio > 0 %}S/ {{ ped.costo_envio }}
+                                    {% else %}A coordinar{% endif %}
                                 </span>
                             </div>
                         </div>
@@ -127,7 +134,6 @@
 
                         <!-- Acciones rápidas -->
                         <div class="pt-3 border-t border-neutral-100 flex flex-wrap items-center justify-between gap-2">
-                            <!-- Botón 1-clic Verificar Pago -->
                             <form method="post" action="{% url 'panel_pedido_pago' ped.id %}">
                                 {% csrf_token %}
                                 {% if not ped.pagado %}
@@ -141,7 +147,6 @@
                                 {% endif %}
                             </form>
 
-                            <!-- Botones de flujo de envío / archivo -->
                             <div class="flex flex-wrap items-center gap-2">
                                 {% if ped.estado == 'PENDIENTE' %}
                                     <form method="post" action="{% url 'panel_pedido_estado' ped.id 'EMPACADO' %}">

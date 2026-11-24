@@ -12,32 +12,32 @@
 
     <!-- Barra Superior -->
     <header class="sticky top-0 z-30 bg-white border-b border-neutral-200">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-0 sm:h-16 flex flex-wrap items-center justify-between gap-2.5">
+            <div class="flex items-center gap-2.5">
                 <span class="font-extrabold tracking-tight text-lg">DSCLUB</span>
-                <span class="text-xs bg-neutral-100 text-neutral-600 px-2.5 py-1 rounded font-semibold">PANEL</span>
+                <span class="text-[11px] bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded font-semibold">PANEL</span>
             </div>
-            <div class="flex items-center gap-2 sm:gap-3">
-                <a href="{% url 'panel_pedidos' %}" class="relative text-xs font-semibold text-neutral-600 hover:text-black border border-neutral-300 px-3 py-2 transition-colors">
+            <div class="flex flex-wrap items-center gap-1.5 sm:gap-2.5">
+                <a href="{% url 'panel_pedidos' %}" class="relative text-xs font-semibold text-neutral-700 hover:text-black border border-neutral-300 px-2.5 sm:px-3 py-2 transition-colors">
                     Pedidos
                     {% if pedidos_pendientes > 0 %}
                         <span class="ml-1 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ pedidos_pendientes }}</span>
                     {% endif %}
                 </a>
-                <a href="{% url 'panel_categorias' %}" class="text-xs font-semibold text-neutral-600 hover:text-black border border-neutral-300 px-3 py-2 transition-colors">
+                <a href="{% url 'panel_categorias' %}" class="text-xs font-semibold text-neutral-700 hover:text-black border border-neutral-300 px-2.5 sm:px-3 py-2 transition-colors">
                     Categorías
                 </a>
-                <a href="{% url 'inicio' %}" target="_blank" class="text-xs font-semibold text-neutral-600 hover:text-black border border-neutral-300 px-3 py-2 transition-colors">
-                    Ver Catálogo ↗
+                <a href="{% url 'inicio' %}" target="_blank" class="text-xs font-semibold text-neutral-700 hover:text-black border border-neutral-300 px-2.5 sm:px-3 py-2 transition-colors">
+                    Tienda ↗
                 </a>
-                <a href="{% url 'panel_crear' %}" class="text-xs font-bold uppercase tracking-wider bg-black text-white hover:bg-neutral-800 px-3.5 sm:px-4 py-2.5 transition-colors">
-                    + Nueva Prenda
+                <a href="{% url 'panel_crear' %}" class="text-xs font-bold uppercase tracking-wider bg-black text-white hover:bg-neutral-800 px-3 sm:px-4 py-2 transition-colors">
+                    + Prenda
                 </a>
             </div>
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 sm:px-6 pt-8">
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8">
         {% if messages %}
             <div class="mb-6 space-y-2">
                 {% for msg in messages %}
@@ -48,11 +48,18 @@
             </div>
         {% endif %}
 
-        <!-- Resumen y Filtros por Categoría -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
-                <h1 class="text-xl font-bold uppercase tracking-tight">Inventario de Prendas</h1>
-                <p class="text-xs text-neutral-500 mt-0.5">{{ total_activos }} publicadas en tienda · {{ total_prendas }} en total</p>
+        <!-- Resumen, Buscador y Filtros por Categoría -->
+        <div class="flex flex-col gap-4 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h1 class="text-xl font-bold uppercase tracking-tight">Inventario de Prendas</h1>
+                    <p class="text-xs text-neutral-500 mt-0.5">{{ total_activos }} publicadas en tienda · {{ total_prendas }} en total</p>
+                </div>
+
+                <div class="w-full sm:w-64">
+                    <input id="admin-search-input" type="text" placeholder="Buscar prenda por nombre..."
+                        class="w-full bg-white border border-neutral-300 focus:border-black outline-none px-3.5 py-2 text-xs transition-colors">
+                </div>
             </div>
 
             <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
@@ -69,20 +76,26 @@
 
         <!-- Grid de Prendas -->
         {% if productos %}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div id="admin-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {% for p in productos %}
-                    <div class="bg-white border border-neutral-200 p-4 flex flex-col justify-between gap-4 {% if not p.activo or p.stock == 0 %}opacity-65{% endif %}">
+                    <div data-name="{{ p.nombre|lower }}" class="admin-product-card bg-white border border-neutral-200 p-4 flex flex-col justify-between gap-4 {% if not p.activo or p.stock == 0 %}opacity-70{% endif %}">
                         <div class="flex gap-4">
-                            <img src="{{ p.imagen.url }}" alt="{{ p.nombre }}" class="w-24 h-28 object-cover bg-neutral-100 shrink-0">
+                            <div class="relative w-24 h-28 bg-neutral-100 shrink-0">
+                                <img src="{{ p.imagen.url }}" alt="{{ p.nombre }}" class="w-full h-full object-cover">
+                                {% if p.stock == 0 %}
+                                    <span class="absolute bottom-1 inset-x-1 bg-red-600 text-white text-[9px] font-bold uppercase text-center py-0.5">
+                                        Agotado
+                                    </span>
+                                {% endif %}
+                            </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center justify-between gap-2">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-neutral-100 text-neutral-700">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-neutral-100 text-neutral-700 truncate">
                                         {{ p.categoria.nombre }} · {{ p.etiqueta }}
                                     </span>
-                                    <!-- Botón Switch Visible -->
                                     <form method="post" action="{% url 'panel_stock_rapido' p.id 'toggle' %}">
                                         {% csrf_token %}
-                                        <button type="submit" title="Activar o pausar en catálogo" class="text-[10px] font-bold uppercase px-2 py-0.5 cursor-pointer {% if p.activo %}bg-emerald-100 text-emerald-800{% else %}bg-neutral-200 text-neutral-600{% endif %}">
+                                        <button type="submit" title="Activar o pausar en catálogo" class="text-[10px] font-bold uppercase px-2 py-0.5 cursor-pointer shrink-0 {% if p.activo %}bg-emerald-100 text-emerald-800{% else %}bg-neutral-200 text-neutral-600{% endif %}">
                                             {% if p.activo %}Visible{% else %}Oculto{% endif %}
                                         </button>
                                     </form>
@@ -134,12 +147,25 @@
         {% else %}
             <div class="bg-white border border-neutral-200 py-16 px-4 text-center">
                 <p class="text-sm font-bold uppercase">Aún no hay prendas registradas</p>
-                <p class="text-xs text-neutral-500 mt-1">Haz clic en "+ Nueva Prenda" para subir la primera foto al catálogo.</p>
+                <p class="text-xs text-neutral-500 mt-1">Haz clic en "+ Prenda" para subir la primera foto al catálogo.</p>
                 <a href="{% url 'panel_crear' %}" class="inline-block mt-5 bg-black text-white text-xs font-bold uppercase tracking-wider px-6 py-3">
                     + Subir Primera Prenda
                 </a>
             </div>
         {% endif %}
     </main>
+
+    <script>
+        const adminSearch = document.getElementById('admin-search-input');
+        if (adminSearch) {
+            adminSearch.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase().trim();
+                document.querySelectorAll('.admin-product-card').forEach(card => {
+                    const name = card.dataset.name || '';
+                    card.classList.toggle('hidden', term && !name.includes(term));
+                });
+            });
+        }
+    </script>
 </body>
 </html>
