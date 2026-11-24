@@ -34,8 +34,8 @@
 </head>
 <body class="bg-white dark:bg-[#0B0B0B] text-[#111111] dark:text-[#F5F5F5] antialiased selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black transition-colors duration-300">
 
-    <!-- 1. PANTALLA INICIAL COMPLETA CON LOGO DSCLUB (100vh) -->
-    <section id="hero-logo" class="relative w-full h-screen flex flex-col items-center justify-center bg-white dark:bg-[#0B0B0B] px-6 select-none transition-colors duration-300">
+    <!-- 1. PANTALLA INICIAL COMPLETA CON LOGO DSCLUB (100dvh para iOS Safari) -->
+    <section id="hero-logo" class="relative w-full h-[100dvh] flex flex-col items-center justify-center bg-white dark:bg-[#0B0B0B] px-6 select-none transition-colors duration-300">
         <div class="w-full max-w-[330px] sm:max-w-[430px] md:max-w-[500px] aspect-square flex items-center justify-center transition-transform duration-700 hover:scale-[1.015]">
             <svg viewBox="0 0 600 600" class="w-full h-full drop-shadow-[0_10px_35px_rgba(0,0,0,0.03)] dark:drop-shadow-[0_10px_40px_rgba(255,255,255,0.04)]" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="300" cy="300" r="286" class="fill-[#FAF8F4] dark:fill-[#141414] stroke-[#D1D0CD] dark:stroke-[#2E2E2E] transition-colors duration-300" stroke-width="7"/>
@@ -198,26 +198,32 @@
         </div>
     </main>
 
-    <!-- MODAL DE SELECCIÓN DE TALLA Y AGREGAR AL CARRITO -->
-    <div id="product-modal" class="fixed inset-0 z-50 hidden bg-black/60 dark:bg-black/80 backdrop-blur-[2px] flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-[#141414] border border-transparent dark:border-neutral-800 max-w-2xl w-full grid grid-cols-1 sm:grid-cols-2 overflow-hidden shadow-2xl relative">
-            <button id="close-modal-btn" class="absolute top-3 right-3 z-10 w-8 h-8 bg-white/90 dark:bg-[#1F1F1F]/90 text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex items-center justify-center transition-colors cursor-pointer">
+    <!-- MODAL DE SELECCIÓN DE TALLA Y AGREGAR AL CARRITO (OPTIMIZADO PARA CELULARES) -->
+    <div id="product-modal" class="fixed inset-0 z-50 hidden bg-black/60 dark:bg-black/80 backdrop-blur-[2px] overflow-y-auto overscroll-contain flex items-start sm:items-center justify-center p-3 sm:p-4">
+        <div class="bg-white dark:bg-[#141414] border border-transparent dark:border-neutral-800 max-w-2xl w-full grid grid-cols-1 sm:grid-cols-2 sm:overflow-hidden shadow-2xl relative my-auto">
+            
+            <!-- Botón cerrar -->
+            <button id="close-modal-btn" class="fixed sm:absolute top-5 right-5 sm:top-3 sm:right-3 z-20 w-8 h-8 bg-white/95 dark:bg-[#1F1F1F]/95 text-black dark:text-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex items-center justify-center transition-colors cursor-pointer shadow-md sm:shadow-none">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
-            <div class="bg-[#F3F3F3] dark:bg-[#1C1C1C] aspect-[4/5] flex items-center justify-center p-6">
-                <img id="modal-img" src="" alt="" class="w-full h-full object-cover">
+
+            <!-- Imagen -->
+            <div class="bg-[#F3F3F3] dark:bg-[#1C1C1C] h-64 sm:h-auto sm:aspect-[4/5] flex items-center justify-center p-4 sm:p-6">
+                <img id="modal-img" src="" alt="" class="w-full h-full object-contain sm:object-cover">
             </div>
-            <div class="p-6 sm:p-8 flex flex-col justify-between">
+
+            <!-- Info + Tallas + Cantidad + Botón -->
+            <div class="p-5 sm:p-8 flex flex-col justify-between">
                 <div>
                     <span id="modal-tag" class="text-[11px] font-bold tracking-widest uppercase text-neutral-500 dark:text-neutral-400">NEW IN</span>
-                    <h2 id="modal-name" class="text-xl font-bold uppercase tracking-tight mt-1 text-black dark:text-white"></h2>
-                    <div class="flex items-baseline gap-2 mt-2">
+                    <h2 id="modal-name" class="text-lg sm:text-xl font-bold uppercase tracking-tight mt-1 text-black dark:text-white"></h2>
+                    <div class="flex items-baseline gap-2 mt-1.5 sm:mt-2">
                         <p id="modal-price" class="text-base font-semibold text-black dark:text-white"></p>
                         <p id="modal-old-price" class="hidden text-xs text-neutral-400 line-through"></p>
                     </div>
-                    <p id="modal-desc" class="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed mt-3"></p>
+                    <p id="modal-desc" class="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed mt-2.5 sm:mt-3"></p>
 
-                    <div class="mt-5">
+                    <div class="mt-4 sm:mt-5">
                         <span class="block text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-2">1. Elige tu talla</span>
                         <div id="modal-sizes" class="flex flex-wrap gap-2"></div>
                     </div>
@@ -232,18 +238,20 @@
                     </div>
                 </div>
 
-                <div class="mt-6 pt-4 border-t border-neutral-100 dark:border-neutral-800 space-y-2">
+                <!-- Botón siempre visible al hacer scroll -->
+                <div class="sticky bottom-0 bg-white dark:bg-[#141414] mt-5 pt-3 pb-2 sm:static sm:mt-6 sm:pt-4 sm:pb-0 border-t border-neutral-100 dark:border-neutral-800 z-10">
                     <button id="modal-add-cart-btn" class="w-full bg-black dark:bg-white text-white dark:text-black py-3.5 px-4 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors cursor-pointer">
                         <span>Agregar al Carrito</span>
                     </button>
                 </div>
             </div>
+
         </div>
     </div>
 
     <!-- DRAWER LATERAL DEL CARRITO DE COMPRAS -->
     <div id="cart-drawer" class="fixed inset-0 z-50 hidden bg-black/60 dark:bg-black/80 backdrop-blur-[2px] flex justify-end">
-        <div class="bg-white dark:bg-[#111111] border-l border-neutral-200 dark:border-neutral-800 w-full max-w-md h-full flex flex-col justify-between shadow-2xl">
+        <div class="bg-white dark:bg-[#111111] border-l border-neutral-200 dark:border-neutral-800 w-full max-w-md h-[100dvh] flex flex-col justify-between shadow-2xl">
             <div class="px-5 py-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
                 <div>
                     <h2 class="text-sm font-bold uppercase tracking-wider">Tu Carrito DSCLUB</h2>

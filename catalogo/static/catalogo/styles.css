@@ -3,6 +3,18 @@ body {
     overflow-x: hidden;
 }
 
+/* Asegura scroll táctil suave y evita bloqueo en celulares (iOS Safari y Android) */
+#product-modal {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+}
+
+#cart-drawer .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+}
+
 /* Scrollbar minimalista (Modo Claro) */
 ::-webkit-scrollbar {
     width: 6px;

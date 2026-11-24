@@ -182,7 +182,10 @@ window.openProductModal = function(id) {
     document.getElementById('modal-qty-val').textContent = '1';
 
     renderModalSizes();
-    document.getElementById('product-modal').classList.remove('hidden');
+    const modalEl = document.getElementById('product-modal');
+    modalEl.classList.remove('hidden');
+    modalEl.scrollTop = 0;
+    document.body.style.overflow = 'hidden';
 };
 
 function renderModalSizes() {
@@ -256,6 +259,7 @@ if (modalAddCartBtn) {
         saveCart();
         document.getElementById('product-modal').classList.add('hidden');
         document.getElementById('cart-drawer').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
     });
 }
 
@@ -263,6 +267,7 @@ const closeModalBtn = document.getElementById('close-modal-btn');
 if (closeModalBtn) {
     closeModalBtn.addEventListener('click', () => {
         document.getElementById('product-modal').classList.add('hidden');
+        document.body.style.overflow = '';
     });
 }
 
@@ -271,6 +276,7 @@ if (productModalEl) {
     productModalEl.addEventListener('click', (e) => {
         if (e.target.id === 'product-modal') {
             productModalEl.classList.add('hidden');
+            document.body.style.overflow = '';
         }
     });
 }
@@ -368,6 +374,7 @@ if (openCartBtn) {
     openCartBtn.addEventListener('click', () => {
         renderCart();
         document.getElementById('cart-drawer').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
     });
 }
 
@@ -375,6 +382,7 @@ const closeCartBtn = document.getElementById('close-cart-btn');
 if (closeCartBtn) {
     closeCartBtn.addEventListener('click', () => {
         document.getElementById('cart-drawer').classList.add('hidden');
+        document.body.style.overflow = '';
     });
 }
 
@@ -383,6 +391,7 @@ if (cartDrawerEl) {
     cartDrawerEl.addEventListener('click', (e) => {
         if (e.target.id === 'cart-drawer') {
             cartDrawerEl.classList.add('hidden');
+            document.body.style.overflow = '';
         }
     });
 }
@@ -497,6 +506,7 @@ if (sendWhatsappBtn) {
                 state.cart = [];
                 saveCart();
                 document.getElementById('cart-drawer').classList.add('hidden');
+                document.body.style.overflow = '';
                 window.open(data.whatsapp_url, '_blank');
             } else {
                 alert(data.error || 'Ocurrió un problema al procesar el pedido.');
