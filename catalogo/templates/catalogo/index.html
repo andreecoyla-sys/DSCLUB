@@ -179,13 +179,9 @@
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mr-2">Talla:</span>
                     <button data-size="ALL" class="size-chip active-size bg-black dark:bg-white text-white dark:text-black px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase cursor-pointer">Todas</button>
-                    <button data-size="S" class="size-chip bg-white dark:bg-[#1F1F1F] border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-black dark:hover:border-white px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase cursor-pointer">S</button>
-                    <button data-size="M" class="size-chip bg-white dark:bg-[#1F1F1F] border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-black dark:hover:border-white px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase cursor-pointer">M</button>
-                    <button data-size="L" class="size-chip bg-white dark:bg-[#1F1F1F] border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-black dark:hover:border-white px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase cursor-pointer">L</button>
-                    <button data-size="XL" class="size-chip bg-white dark:bg-[#1F1F1F] border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-black dark:hover:border-white px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase cursor-pointer">XL</button>
-                    <button data-size="30" class="size-chip bg-white dark:bg-[#1F1F1F] border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-black dark:hover:border-white px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase cursor-pointer">30</button>
-                    <button data-size="32" class="size-chip bg-white dark:bg-[#1F1F1F] border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-black dark:hover:border-white px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase cursor-pointer">32</button>
-                    <button data-size="34" class="size-chip bg-white dark:bg-[#1F1F1F] border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-black dark:hover:border-white px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase cursor-pointer">34</button>
+                    {% for talla in tallas_filtro %}
+                        <button data-size="{{ talla }}" class="size-chip bg-white dark:bg-[#1F1F1F] border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-black dark:hover:border-white px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase cursor-pointer">{{ talla }}</button>
+                    {% endfor %}
                 </div>
                 <button id="clear-filters-btn" class="text-[11px] underline text-neutral-500 dark:text-neutral-400 hover:text-black dark:hover:text-white cursor-pointer">Limpiar filtros</button>
             </div>
@@ -276,9 +272,9 @@
                         <div>
                             <label class="block text-[11px] font-semibold uppercase mb-1">Entrega</label>
                             <select id="chk-entrega" class="w-full border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#181818] px-2.5 py-2 text-xs outline-none focus:border-black dark:focus:border-white">
-                                <option value="Delivery">Delivery (+S/ {{ tarifa_delivery|floatformat:2 }})</option>
-                                <option value="Recojo en tienda">Recojo (Gratis)</option>
-                                <option value="Envío provincia">Envío Provincia (+S/ {{ tarifa_provincia|floatformat:2 }})</option>
+                                <option value="Delivery">Delivery</option>
+                                <option value="Recojo en tienda">Recojo en tienda</option>
+                                <option value="Envío provincia">Envío provincia</option>
                             </select>
                         </div>
                     </div>
@@ -338,17 +334,11 @@
                 </div>
             </div>
 
-            <!-- Pie con desglose de Subtotal + Envío + Total -->
+            <!-- Pie con Total de Prendas -->
             <div id="cart-footer" class="hidden p-5 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#161616] space-y-2.5">
-                <div class="space-y-1 text-xs text-neutral-500 dark:text-neutral-400">
-                    <div class="flex items-center justify-between">
-                        <span>Subtotal prendas</span>
-                        <span id="cart-subtotal">S/ 0.00</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span id="cart-shipping-label">Envío (Delivery)</span>
-                        <span id="cart-shipping">S/ 8.00</span>
-                    </div>
+                <div class="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
+                    <span>Modalidad de entrega</span>
+                    <span id="cart-shipping-label" class="font-semibold text-black dark:text-white">Delivery</span>
                 </div>
                 <div class="flex items-center justify-between text-sm font-bold pt-2 border-t border-neutral-200 dark:border-neutral-800">
                     <span class="uppercase tracking-wider">Total a Pagar</span>

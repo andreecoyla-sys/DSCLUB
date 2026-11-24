@@ -10,17 +10,29 @@ from django.db.models.deletion import ProtectedError
 from django.views.decorators.http import require_POST
 from .models import Producto, Categoria, Pedido, DetallePedido
 
-TALLAS_DISPONIBLES = ['S', 'M', 'L', 'XL', '30', '32', '34', 'ÚNICA']
+TALLAS_BASE = ['16', 'S', 'M', 'L', 'XL', '30', '32', '34', 'ÚNICA']
 WHATSAPP_TIENDA = '51987532146'
 
-# Tarifas de envío (en Soles)
-TARIFA_DELIVERY = Decimal('8.00')
-TARIFA_PROVINCIA = Decimal('15.00')
+TARIFA_DELIVERY = Decimal('0.00')
+TARIFA_PROVINCIA = Decimal('0.00')
 
 def asegurar_categorias_base():
     if not Categoria.objects.exists():
         for i, nombre in enumerate(['POLOS', 'SHORES', 'BUSOS', 'POLERAS', 'JEAN'], start=1):
             Categoria.objects.create(nombre=nombre, orden=i)
+
+def _combinar_tallas(tallas_check, tallas_extra_raw):
+    resultado = []
+    for t in tallas_check:
+        t_clean = t.strip().upper()
+        if t_clean and t_clean not in resultado:
+            resultado.append(t_clean)
+    if tallas_extra_raw:
+        for t in tallas_extra_raw.split(','):
+            t_clean = t.strip().upper()
+            if t_clean and t_clean not in resultado:
+                resultado.append(t_clean)
+    return ', '.join(resultado) if resultado else 'ÚNICA'
 
 def inicio(request):
     asegurar_categorias_base()
@@ -30,8 +42,15 @@ def inicio(request):
         stock__gt=0,
         categoria__activa=True
     )
-    data = [
-        {
+
+    tallas_en_stock = []
+    data = []
+    for p in productos:
+        lista_t = p.lista_tallas()
+        for t in lista_t:
+            if t and t not in tallas_en_stock:
+                tallas_en_stock.append(t)
+        data.append({
             'id': p.id,
             'tag': p.etiqueta,
             'category': p.categoria.nombre,
@@ -39,15 +58,20 @@ def inicio(request):
             'price': float(p.precio),
             'old_price': float(p.precio_anterior) if p.precio_anterior else None,
             'stock': p.stock,
-            'sizes': p.lista_tallas(),
+            'sizes': lista_t,
             'image': p.imagen.url if p.imagen else '',
             'description': p.descripcion,
-        }
-        for p in productos
+        })
+
+    # Ordena primero las tallas base conocidas y luego cualquier talla nueva creada por el dueño
+    tallas_filtro = [t for t in TALLAS_BASE if t in tallas_en_stock] + [
+        t for t in tallas_en_stock if t not in TALLAS_BASE
     ]
+
     return render(request, 'catalogo/index.html', {
         'productos_data': data,
         'categorias': categorias,
+        'tallas_filtro': tallas_filtro,
         'tarifa_delivery': float(TARIFA_DELIVERY),
         'tarifa_provincia': float(TARIFA_PROVINCIA),
     })
@@ -153,7 +177,6 @@ def crear_pedido(request):
     else:
         bloque_destino = ""
 
-    texto_envio = f"S/ {costo_envio:.2f}" if costo_envio > 0 else "GRATIS (Recojo)"
     aviso_comprobante = (
         "\n\n_Adjunto mi captura de pago aquí abajo para confirmar mi envío:_"
         if metodo_pago in {'YAPE / PLIN', 'TRANSFERENCIA'}
@@ -170,9 +193,7 @@ def crear_pedido(request):
         f"*PRENDAS:*\n"
         f"{detalle_texto}\n"
         f"--------------------------------\n"
-        f"*Subtotal prendas:* S/ {subtotal_prendas:.2f}\n"
-        f"*Envío ({tipo_entrega}):* {texto_envio}\n"
-        f"*TOTAL A PAGAR: S/ {total_final:.2f}*"
+        f"*TOTAL PRENDAS: S/ {total_final:.2f}*"
         f"{aviso_comprobante}"
     )
 
@@ -203,7 +224,6 @@ def panel_lista(request):
 
 @login_required(login_url='/admin/login/')
 def panel_pedidos(request):
-    # Por defecto solo muestra los pedidos ACTIVOS (Pendientes y Empacados)
     estado = request.GET.get('estado', 'ACTIVOS')
     pedidos = Pedido.objects.prefetch_related('items').all()
 
@@ -309,6 +329,7 @@ def panel_crear(request):
         precio_ant_raw = request.POST.get('precio_anterior', '').strip()
         stock = int(request.POST.get('stock', 1) or 0)
         tallas_sel = request.POST.getlist('tallas')
+        tallas_extra = request.POST.get('tallas_personalizadas', '')
         descripcion = request.POST.get('descripcion', '').strip()
         activo = request.POST.get('activo') == 'on'
         imagen = request.FILES.get('imagen')
@@ -337,7 +358,7 @@ def panel_crear(request):
                 precio=precio,
                 precio_anterior=precio_anterior,
                 stock=max(0, stock),
-                tallas=', '.join(tallas_sel) if tallas_sel else 'S, M, L',
+                tallas=_combinar_tallas(tallas_sel, tallas_extra),
                 imagen=imagen,
                 descripcion=descripcion,
                 activo=activo,
@@ -349,8 +370,9 @@ def panel_crear(request):
         'producto': None,
         'categorias': categorias,
         'etiquetas': Producto.ETIQUETAS,
-        'tallas_disponibles': TALLAS_DISPONIBLES,
+        'tallas_disponibles': TALLAS_BASE,
         'tallas_marcadas': ['S', 'M', 'L'],
+        'tallas_personalizadas': '',
     })
 
 @login_required(login_url='/admin/login/')
@@ -366,7 +388,8 @@ def panel_editar(request, pk):
         producto.etiqueta = request.POST.get('etiqueta', producto.etiqueta)
         producto.stock = max(0, int(request.POST.get('stock', producto.stock) or 0))
         tallas_sel = request.POST.getlist('tallas')
-        producto.tallas = ', '.join(tallas_sel) if tallas_sel else 'ÚNICA'
+        tallas_extra = request.POST.get('tallas_personalizadas', '')
+        producto.tallas = _combinar_tallas(tallas_sel, tallas_extra)
         producto.descripcion = request.POST.get('descripcion', '').strip()
         producto.activo = request.POST.get('activo') == 'on'
 
@@ -391,12 +414,16 @@ def panel_editar(request, pk):
         messages.success(request, f'Cambios guardados en "{producto.nombre}".')
         return redirect('panel_lista')
 
+    tallas_actuales = producto.lista_tallas()
+    tallas_custom = [t for t in tallas_actuales if t not in TALLAS_BASE]
+
     return render(request, 'catalogo/panel_form.html', {
         'producto': producto,
         'categorias': categorias,
         'etiquetas': Producto.ETIQUETAS,
-        'tallas_disponibles': TALLAS_DISPONIBLES,
-        'tallas_marcadas': producto.lista_tallas(),
+        'tallas_disponibles': TALLAS_BASE,
+        'tallas_marcadas': tallas_actuales,
+        'tallas_personalizadas': ', '.join(tallas_custom),
     })
 
 @login_required(login_url='/admin/login/')

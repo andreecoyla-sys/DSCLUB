@@ -10,161 +10,162 @@
 </head>
 <body class="bg-neutral-50 text-neutral-900 min-h-screen pb-16">
 
-    <header class="bg-white border-b border-neutral-200">
-        <div class="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
-            <a href="{% url 'panel_lista' %}" class="text-xs font-semibold text-neutral-600 hover:text-black">← Volver al inventario</a>
-            <span class="font-extrabold tracking-tight text-sm uppercase">DSCLUB</span>
+    <header class="sticky top-0 z-30 bg-white border-b border-neutral-200">
+        <div class="max-w-2xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <a href="{% url 'panel_lista' %}" class="text-xs font-bold uppercase tracking-wider text-neutral-600 hover:text-black flex items-center gap-2">
+                ← Volver al panel
+            </a>
+            <span class="font-extrabold text-sm tracking-tight">DSCLUB ADMIN</span>
         </div>
     </header>
 
-    <main class="max-w-2xl mx-auto px-4 pt-8">
-        <h1 class="text-xl font-bold uppercase tracking-tight mb-6">
-            {% if producto %}Editar Prenda{% else %}Subir Nueva Prenda{% endif %}
-        </h1>
+    <main class="max-w-2xl mx-auto px-4 sm:px-6 pt-8">
+        <div class="mb-6">
+            <h1 class="text-xl font-bold uppercase tracking-tight">
+                {% if producto %}Editar Prenda{% else %}Subir Nueva Prenda{% endif %}
+            </h1>
+            <p class="text-xs text-neutral-500 mt-1">Completa los datos y guarda para actualizar el catálogo al instante.</p>
+        </div>
 
         {% if messages %}
-            {% for msg in messages %}
-                <div class="bg-red-600 text-white text-xs font-medium px-4 py-3 mb-5">{{ msg }}</div>
-            {% endfor %}
+            <div class="mb-5 space-y-2">
+                {% for msg in messages %}
+                    <div class="bg-red-600 text-white text-xs font-medium px-4 py-3">{{ msg }}</div>
+                {% endfor %}
+            </div>
         {% endif %}
 
         <form method="post" enctype="multipart/form-data" class="bg-white border border-neutral-200 p-5 sm:p-8 space-y-6">
             {% csrf_token %}
 
-            <!-- 1. FOTO PRINCIPAL CON VISTA PREVIA -->
             <div>
-                <label class="block text-xs font-bold uppercase tracking-wider mb-2">1. Foto de la prenda *</label>
-                <label for="imagen-input" class="block border-2 border-dashed border-neutral-300 hover:border-black transition-colors p-4 text-center cursor-pointer bg-neutral-50">
-                    <img id="preview-img" src="{% if producto and producto.imagen %}{{ producto.imagen.url }}{% endif %}"
-                         class="{% if not producto %}hidden{% endif %} mx-auto h-56 w-44 object-cover mb-3 border border-neutral-200">
-                    <span class="inline-block bg-black text-white text-xs font-semibold uppercase tracking-wider px-4 py-2">
-                        {% if producto %}Cambiar foto{% else %}Seleccionar o tomar foto{% endif %}
-                    </span>
-                    <p class="text-[11px] text-neutral-400 mt-2">JPG, PNG o WEBP</p>
-                </label>
-                <input id="imagen-input" type="file" name="imagen" accept="image/*" class="hidden" {% if not producto %}required{% endif %}>
-            </div>
-
-            <!-- 2. CATEGORÍA DINÁMICA -->
-            <div>
-                <div class="flex items-center justify-between mb-2">
-                    <label class="block text-xs font-bold uppercase tracking-wider">2. Categoría *</label>
-                    <a href="{% url 'panel_categorias' %}" class="text-[11px] underline text-neutral-500 hover:text-black">+ Nueva categoría</a>
-                </div>
-                <div class="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                    {% for cat in categorias %}
-                        <label class="cursor-pointer">
-                            <input type="radio" name="categoria" value="{{ cat.id }}" class="peer hidden"
-                                   {% if producto and producto.categoria_id == cat.id %}checked{% elif not producto and forloop.first %}checked{% endif %}>
-                            <div class="text-center py-2.5 px-2 text-xs font-bold uppercase border border-neutral-200 peer-checked:bg-black peer-checked:text-white peer-checked:border-black transition-colors truncate">
-                                {{ cat.nombre }}
-                            </div>
-                        </label>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- 3. NOMBRE DE LA PRENDA -->
-            <div>
-                <label for="nombre" class="block text-xs font-bold uppercase tracking-wider mb-2">3. Nombre de la prenda *</label>
-                <input id="nombre" type="text" name="nombre" required value="{{ producto.nombre|default:'' }}"
-                       placeholder="Ej: Polo Boxy Heavyweight Negro"
-                       class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2.5 text-sm">
-            </div>
-
-            <!-- 4. PRECIO Y PRECIO ANTERIOR -->
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label for="precio" class="block text-xs font-bold uppercase tracking-wider mb-2">4. Precio actual (S/) *</label>
-                    <input id="precio" type="number" step="0.01" min="0" name="precio" required value="{{ producto.precio|default:'' }}"
-                           placeholder="89.00"
-                           class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2.5 text-sm font-semibold">
-                </div>
-                <div>
-                    <label for="precio_anterior" class="block text-xs font-bold uppercase tracking-wider mb-2 text-neutral-500">Precio antes (opcional)</label>
-                    <input id="precio_anterior" type="number" step="0.01" min="0" name="precio_anterior" value="{{ producto.precio_anterior|default:'' }}"
-                           placeholder="110.00"
-                           class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2.5 text-sm">
-                </div>
-            </div>
-
-            <!-- 5. TALLAS DISPONIBLES (CHIPS SELECCIONABLES) -->
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider mb-2">5. Tallas disponibles *</label>
-                <div class="flex flex-wrap gap-2">
-                    {% for t in tallas_disponibles %}
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="tallas" value="{{ t }}" class="peer hidden"
-                                   {% if t in tallas_marcadas %}checked{% endif %}>
-                            <div class="px-3.5 h-10 flex items-center justify-center text-xs font-bold uppercase border border-neutral-300 peer-checked:bg-black peer-checked:text-white peer-checked:border-black transition-colors">
-                                {{ t }}
-                            </div>
-                        </label>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- 6. STOCK Y ETIQUETA -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider mb-2">6. Cantidad en stock *</label>
-                    <div class="flex items-center border border-neutral-300 w-fit">
-                        <button type="button" onclick="cambiarStock(-1)" class="w-10 h-10 font-bold text-lg hover:bg-neutral-100 cursor-pointer">-</button>
-                        <input id="stock-input" type="number" min="0" name="stock" value="{{ producto.stock|default:5 }}"
-                               class="w-16 h-10 text-center font-bold text-sm outline-none">
-                        <button type="button" onclick="cambiarStock(1)" class="w-10 h-10 font-bold text-lg hover:bg-neutral-100 cursor-pointer">+</button>
+                <label class="block text-xs font-bold uppercase tracking-wider mb-2">Foto de la Prenda {% if not producto %}*{% endif %}</label>
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div class="w-28 h-36 bg-neutral-100 border border-neutral-200 overflow-hidden shrink-0 flex items-center justify-center">
+                        <img id="preview-img" src="{% if producto and producto.imagen %}{{ producto.imagen.url }}{% endif %}" alt=""
+                            class="w-full h-full object-cover {% if not producto or not producto.imagen %}hidden{% endif %}">
+                        <span id="preview-placeholder" class="text-[11px] text-neutral-400 text-center px-2 {% if producto and producto.imagen %}hidden{% endif %}">Sin foto</span>
+                    </div>
+                    <div class="flex-1">
+                        <input type="file" name="imagen" id="imagen-input" accept="image/*" {% if not producto %}required{% endif %}
+                            class="block w-full text-xs text-neutral-600 file:mr-4 file:py-2.5 file:px-4 file:border-0 file:text-xs file:font-bold file:uppercase file:bg-black file:text-white hover:file:bg-neutral-800 cursor-pointer">
+                        <p class="text-[11px] text-neutral-400 mt-2">Puedes tomar foto directo desde tu celular o elegir de tu galería.</p>
                     </div>
                 </div>
+            </div>
+
+            <div>
+                <label for="nombre" class="block text-xs font-bold uppercase tracking-wider mb-2">Nombre de la Prenda *</label>
+                <input type="text" id="nombre" name="nombre" required value="{{ producto.nombre|default:'' }}"
+                    placeholder="Ej: Polo Boxy Heavyweight Negro"
+                    class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2.5 text-sm">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="categoria" class="block text-xs font-bold uppercase tracking-wider">Categoría *</label>
+                        <a href="{% url 'panel_categorias' %}" class="text-[11px] underline text-neutral-500 hover:text-black">+ Nueva</a>
+                    </div>
+                    <select id="categoria" name="categoria" class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2.5 text-sm bg-white">
+                        {% for cat in categorias %}
+                            <option value="{{ cat.id }}" {% if producto and producto.categoria_id == cat.id %}selected{% endif %}>{{ cat.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
                 <div>
-                    <label for="etiqueta" class="block text-xs font-bold uppercase tracking-wider mb-2">7. Etiqueta en foto</label>
-                    <select id="etiqueta" name="etiqueta" class="w-full h-10 border border-neutral-300 focus:border-black outline-none px-3 text-sm bg-white">
-                        {% for code, label in etiquetas %}
-                            <option value="{{ code }}" {% if producto and producto.etiqueta == code %}selected{% endif %}>{{ label }}</option>
+                    <label for="etiqueta" class="block text-xs font-bold uppercase tracking-wider mb-2">Etiqueta en Foto</label>
+                    <select id="etiqueta" name="etiqueta" class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2.5 text-sm bg-white">
+                        {% for val, label in etiquetas %}
+                            <option value="{{ val }}" {% if producto.etiqueta == val %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>
             </div>
 
-            <!-- 7. DESCRIPCIÓN BREVE -->
-            <div>
-                <label for="descripcion" class="block text-xs font-bold uppercase tracking-wider mb-2">8. Descripción breve (opcional)</label>
-                <textarea id="descripcion" name="descripcion" rows="2"
-                          placeholder="Ej: Algodón 260gsm de caída pesada, corte boxy."
-                          class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2.5 text-sm">{{ producto.descripcion|default:'' }}</textarea>
-            </div>
-
-            <!-- 8. INTERRUPTOR VISIBLE EN CATÁLOGO -->
-            <div class="pt-2 border-t border-neutral-100 flex items-center justify-between">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <span class="block text-xs font-bold uppercase">Visible en el catálogo público</span>
-                    <span class="text-[11px] text-neutral-500">Desactívalo si quieres guardarlo como borrador</span>
+                    <label for="precio" class="block text-xs font-bold uppercase tracking-wider mb-2">Precio Actual (S/) *</label>
+                    <input type="number" step="0.01" min="0" id="precio" name="precio" required
+                        value="{{ producto.precio|stringformat:'.2f'|default:'' }}" placeholder="89.00"
+                        class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2.5 text-sm">
                 </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" name="activo" class="sr-only peer" {% if not producto or producto.activo %}checked{% endif %}>
-                    <div class="w-11 h-6 bg-neutral-300 peer-checked:bg-black rounded-full transition-colors after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:w-5 after:h-5 after:rounded-full after:transition-all peer-checked:after:translate-x-5"></div>
-                </label>
+
+                <div>
+                    <label for="precio_anterior" class="block text-xs font-bold uppercase tracking-wider mb-2">Precio Antes (Opcional)</label>
+                    <input type="number" step="0.01" min="0" id="precio_anterior" name="precio_anterior"
+                        value="{% if producto.precio_anterior %}{{ producto.precio_anterior|stringformat:'.2f' }}{% endif %}" placeholder="Ej: 119.00"
+                        class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2.5 text-sm">
+                    <p class="text-[10px] text-neutral-400 mt-1">Se mostrará tachado como oferta.</p>
+                </div>
+
+                <div>
+                    <label for="stock" class="block text-xs font-bold uppercase tracking-wider mb-2">Stock Disponible *</label>
+                    <input type="number" min="0" id="stock" name="stock" required
+                        value="{{ producto.stock|default:'5' }}"
+                        class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2.5 text-sm">
+                </div>
             </div>
 
-            <button type="submit" class="w-full bg-black hover:bg-neutral-800 text-white py-3.5 text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer">
-                {% if producto %}Guardar Cambios{% else %}Publicar Prenda en DSCLUB{% endif %}
-            </button>
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider mb-2">Tallas Disponibles</label>
+                <div class="flex flex-wrap gap-2">
+                    {% for talla in tallas_disponibles %}
+                        <label class="cursor-pointer">
+                            <input type="checkbox" name="tallas" value="{{ talla }}" class="peer sr-only"
+                                {% if talla in tallas_marcadas %}checked{% endif %}>
+                            <span class="inline-block border border-neutral-300 px-3.5 py-2 text-xs font-bold uppercase peer-checked:bg-black peer-checked:text-white peer-checked:border-black transition-colors">
+                                {{ talla }}
+                            </span>
+                        </label>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-3">
+                    <label for="tallas_personalizadas" class="block text-[11px] font-semibold uppercase tracking-wider text-neutral-500 mb-1">
+                        ¿Otra talla distinta? Escríbela aquí (separadas por coma):
+                    </label>
+                    <input type="text" id="tallas_personalizadas" name="tallas_personalizadas"
+                        value="{{ tallas_personalizadas|default:'' }}"
+                        placeholder="Ej: XXL, 28, 36, 38"
+                        class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2 text-xs uppercase">
+                </div>
+            </div>
+
+            <div>
+                <label for="descripcion" class="block text-xs font-bold uppercase tracking-wider mb-2">Detalles / Descripción</label>
+                <textarea id="descripcion" name="descripcion" rows="3" placeholder="Ej: Algodón 100% jersey 24/1, fit oversize."
+                    class="w-full border border-neutral-300 focus:border-black outline-none px-3.5 py-2.5 text-sm">{{ producto.descripcion|default:'' }}</textarea>
+            </div>
+
+            <div class="flex items-center gap-2.5 pt-1">
+                <input type="checkbox" id="activo" name="activo" class="w-4 h-4 accent-black"
+                    {% if not producto or producto.activo %}checked{% endif %}>
+                <label for="activo" class="text-xs font-medium text-neutral-700">Visible en el catálogo público</label>
+            </div>
+
+            <div class="pt-4 border-t border-neutral-200 flex items-center justify-end gap-3">
+                <a href="{% url 'panel_lista' %}" class="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-neutral-600 hover:text-black">Cancelar</a>
+                <button type="submit" class="bg-black text-white px-7 py-3 text-xs font-bold uppercase tracking-widest hover:bg-neutral-800 transition-colors cursor-pointer">
+                    {% if producto %}Guardar Cambios{% else %}Publicar Prenda{% endif %}
+                </button>
+            </div>
         </form>
     </main>
 
     <script>
-        function cambiarStock(delta) {
-            const input = document.getElementById('stock-input');
-            const actual = parseInt(input.value || 0, 10);
-            input.value = Math.max(0, actual + delta);
-        }
+        const input = document.getElementById('imagen-input');
+        const preview = document.getElementById('preview-img');
+        const placeholder = document.getElementById('preview-placeholder');
 
-        document.getElementById('imagen-input').addEventListener('change', function(e) {
+        input.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if (!file) return;
-            const preview = document.getElementById('preview-img');
-            preview.src = URL.createObjectURL(file);
-            preview.classList.remove('hidden');
+            if (file) {
+                preview.src = URL.createObjectURL(file);
+                preview.classList.remove('hidden');
+                if (placeholder) placeholder.classList.add('hidden');
+            }
         });
     </script>
 </body>
