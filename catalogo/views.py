@@ -1,4 +1,4 @@
-import json
+﻿import json
 from urllib.parse import quote
 from decimal import Decimal, InvalidOperation
 from django.http import JsonResponse
@@ -509,7 +509,7 @@ def panel_recorte_masivo(request):
             'url': p.imagen.url,
         }
         for p in productos
-        if p.imagen and not p.imagen.name.lower().endswith('.webp')
+        if p.imagen
     ]
     return render(request, 'catalogo/panel_recorte_masivo.html', {
         'items_json': json.dumps(items),
