@@ -497,3 +497,36 @@ def panel_eliminar(request, pk):
         producto.delete()
         messages.success(request, f'Se eliminó "{nombre}".')
     return redirect(request.META.get('HTTP_REFERER') or 'panel_lista')
+
+
+@login_required(login_url='/admin/login/')
+def panel_recorte_masivo(request):
+    productos = Producto.objects.filter(activo=True).order_by('id')
+    items = [
+        {
+            'id': p.id,
+            'nombre': p.nombre,
+            'url': p.imagen.url,
+        }
+        for p in productos
+        if p.imagen and not p.imagen.name.lower().endswith('.webp')
+    ]
+    return render(request, 'catalogo/panel_recorte_masivo.html', {
+        'items_json': json.dumps(items),
+        'total': len(items),
+    })
+
+
+@login_required(login_url='/admin/login/')
+@require_POST
+def panel_actualizar_imagen_lote(request, pk):
+    producto = get_object_or_404(Producto, pk=pk)
+    nueva_imagen = request.FILES.get('imagen')
+    if not nueva_imagen:
+        return JsonResponse({'ok': False, 'error': 'No se recibió imagen.'}, status=400)
+
+    if producto.imagen:
+        producto.imagen.delete(save=False)
+    producto.imagen = nueva_imagen
+    producto.save(update_fields=['imagen'])
+    return JsonResponse({'ok': True, 'nueva_url': producto.imagen.url})

@@ -134,7 +134,7 @@ function renderProducts() {
 
                     <img src="${product.image}" alt="${product.name}" loading="lazy"
                         onclick="openProductModal(${product.id})"
-                        class="w-full h-full object-cover object-center group-hover:scale-[1.04] transition-transform duration-500 cursor-pointer">
+                        class="w-full h-full object-contain object-center p-4 drop-shadow-sm group-hover:scale-[1.05] transition-transform duration-500 cursor-pointer">
 
                     <button onclick="openProductModal(${product.id})"
                         class="absolute inset-x-3 bottom-3 bg-white/95 dark:bg-[#141414]/95 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black text-black dark:text-white py-2 text-[11px] font-semibold uppercase tracking-widest opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 cursor-pointer shadow-sm">
@@ -303,7 +303,6 @@ if (productModalEl) {
     });
 }
 
-// Cerrar modal o carrito con tecla Escape
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeAllOverlays();
@@ -358,7 +357,7 @@ function renderCart() {
             subtotalPrendas += subtotal;
             return `
                 <div class="flex gap-3.5 pb-4 border-b border-neutral-100 dark:border-neutral-800">
-                    <img src="${item.image}" alt="${item.name}" class="w-16 h-20 object-cover bg-neutral-100 dark:bg-neutral-800 shrink-0">
+                    <img src="${item.image}" alt="${item.name}" class="w-16 h-20 object-contain p-1 bg-neutral-100 dark:bg-neutral-800 shrink-0">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-start justify-between gap-2">
                             <h3 class="text-xs font-bold uppercase truncate">${item.name}</h3>
@@ -447,7 +446,6 @@ if (cartDrawerEl) {
     });
 }
 
-// Alternar campos según tipo de entrega y recalcular total
 const entregaSelect = document.getElementById('chk-entrega');
 const direccionWrapper = document.getElementById('chk-direccion-wrapper');
 const provinciaWrapper = document.getElementById('chk-provincia-wrapper');
@@ -468,7 +466,6 @@ if (entregaSelect) {
 }
 actualizarCamposEntrega();
 
-// Mostrar u ocultar datos de Yape/Plin según método de pago
 const pagoSelect = document.getElementById('chk-pago');
 const pagoInfoBox = document.getElementById('pago-info-box');
 if (pagoSelect && pagoInfoBox) {
@@ -486,7 +483,6 @@ if (copyYapeBtn) {
     });
 }
 
-// Enviar pedido al servidor (guarda en panel) y abrir WhatsApp
 const sendWhatsappBtn = document.getElementById('send-whatsapp-order-btn');
 if (sendWhatsappBtn) {
     sendWhatsappBtn.addEventListener('click', async () => {
