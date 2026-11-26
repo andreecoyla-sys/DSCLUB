@@ -49,7 +49,7 @@
                     <div class="flex-1">
                         <input type="file" name="imagen" id="imagen-input" accept="image/*" {% if not producto %}required{% endif %}
                             class="block w-full text-xs text-neutral-600 file:mr-4 file:py-2.5 file:px-4 file:border-0 file:text-xs file:font-bold file:uppercase file:bg-black file:text-white hover:file:bg-neutral-800 cursor-pointer">
-                        <p id="status-foto" class="text-[11px] text-neutral-400 mt-2">Al elegir una foto, se recortará el fondo y optimizará automáticamente antes de subir.</p>
+                        <p id="status-foto" class="text-[11px] text-neutral-400 mt-2">Al elegir una foto, se recortará el fondo, ajustará el tamaño estándar y optimizará automáticamente antes de subir.</p>
                     </div>
                 </div>
             </div>
@@ -170,21 +170,21 @@
 
             const textoOriginal = submitBtn.innerText;
             submitBtn.disabled = true;
-            submitBtn.innerText = 'Recortando fondo...';
-            statusFoto.textContent = 'Quitando fondo y optimizando peso para la web, espera unos segundos...';
+            submitBtn.innerText = 'Recortando y encuadrando...';
+            statusFoto.textContent = 'Quitando fondo, solidificando tela y ajustando tamaño estándar...';
             statusFoto.classList.remove('text-neutral-400', 'text-emerald-600');
             statusFoto.classList.add('text-amber-600', 'font-semibold');
 
             try {
                 const blobSinFondo = await removeBackground(file);
-                const webpFile = await optimizarAWebP(blobSinFondo, file.name, 900, 0.85);
+                const webpFile = await optimizarAWebP(blobSinFondo, file.name, 1200, 0.86);
 
                 const dataTransfer = new DataTransfer();
                 dataTransfer.items.add(webpFile);
                 input.files = dataTransfer.files;
 
                 preview.src = URL.createObjectURL(webpFile);
-                statusFoto.textContent = `Listo: fondo eliminado y optimizado (${Math.round(webpFile.size / 1024)} KB).`;
+                statusFoto.textContent = `Listo: fondo eliminado y encuadre estándar aplicado (${Math.round(webpFile.size / 1024)} KB).`;
                 statusFoto.classList.remove('text-amber-600');
                 statusFoto.classList.add('text-emerald-600');
             } catch (err) {
@@ -201,20 +201,124 @@
             }
         });
 
-        function optimizarAWebP(blob, originalName, maxWidth, quality) {
+        function solidifyInterior(canvas) {
+            const w = canvas.width;
+            const h = canvas.height;
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.getImageData(0, 0, w, h);
+            const data = imageData.data;
+
+            const outside = new Uint8Array(w * h);
+            const stack = [];
+
+            for (let x = 0; x < w; x++) {
+                if (data[x * 4 + 3] < 20) { outside[x] = 1; stack.push(x); }
+                const bot = (h - 1) * w + x;
+                if (data[bot * 4 + 3] < 20) { outside[bot] = 1; stack.push(bot); }
+            }
+            for (let y = 0; y < h; y++) {
+                const left = y * w;
+                if (data[left * 4 + 3] < 20) { outside[left] = 1; stack.push(left); }
+                const right = y * w + (w - 1);
+                if (data[right * 4 + 3] < 20) { outside[right] = 1; stack.push(right); }
+            }
+
+            while (stack.length > 0) {
+                const idx = stack.pop();
+                const x = idx % w;
+                const y = (idx - x) / w;
+
+                const neighbors = [];
+                if (x > 0) neighbors.push(idx - 1);
+                if (x < w - 1) neighbors.push(idx + 1);
+                if (y > 0) neighbors.push(idx - w);
+                if (y < h - 1) neighbors.push(idx + w);
+
+                for (let i = 0; i < neighbors.length; i++) {
+                    const n = neighbors[i];
+                    if (!outside[n] && data[n * 4 + 3] < 20) {
+                        outside[n] = 1;
+                        stack.push(n);
+                    }
+                }
+            }
+
+            for (let i = 0; i < w * h; i++) {
+                if (!outside[i] && data[i * 4 + 3] > 10) {
+                    data[i * 4 + 3] = 255;
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function smartTrimCanvas(sourceCanvas) {
+            const w = sourceCanvas.width;
+            const h = sourceCanvas.height;
+            const ctx = sourceCanvas.getContext('2d');
+            const imgData = ctx.getImageData(0, 0, w, h).data;
+
+            let minX = w, minY = h, maxX = 0, maxY = 0;
+            let hasPixels = false;
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const alpha = imgData[(y * w + x) * 4 + 3];
+                    if (alpha > 20) {
+                        hasPixels = true;
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+            }
+
+            if (!hasPixels) return sourceCanvas;
+
+            const cropW = maxX - minX + 1;
+            const cropH = maxY - minY + 1;
+            const aspect = cropW / cropH;
+
+            const padRatio = aspect > 1.25 ? 0.12 : 0.06;
+            const padX = Math.round(cropW * padRatio);
+            const padY = Math.round(cropH * padRatio);
+
+            const outW = cropW + padX * 2;
+            const outH = cropH + padY * 2;
+
+            const outCanvas = document.createElement('canvas');
+            outCanvas.width = outW;
+            outCanvas.height = outH;
+            outCanvas.getContext('2d').drawImage(sourceCanvas, minX, minY, cropW, cropH, padX, padY, cropW, cropH);
+
+            return outCanvas;
+        }
+
+        function optimizarAWebP(blob, originalName, maxSide, quality) {
             return new Promise((resolve) => {
                 const img = new Image();
                 img.onload = () => {
-                    let w = img.width;
-                    let h = img.height;
-                    if (w > maxWidth) {
-                        h = Math.round((h * maxWidth) / w);
-                        w = maxWidth;
+                    const rawCanvas = document.createElement('canvas');
+                    rawCanvas.width = img.width;
+                    rawCanvas.height = img.height;
+                    rawCanvas.getContext('2d').drawImage(img, 0, 0);
+
+                    solidifyInterior(rawCanvas);
+                    const trimmedCanvas = smartTrimCanvas(rawCanvas);
+
+                    let w = trimmedCanvas.width;
+                    let h = trimmedCanvas.height;
+                    if (w > maxSide || h > maxSide) {
+                        const ratio = Math.min(maxSide / w, maxSide / h);
+                        w = Math.round(w * ratio);
+                        h = Math.round(h * ratio);
                     }
+
                     const canvas = document.createElement('canvas');
                     canvas.width = w;
                     canvas.height = h;
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    canvas.getContext('2d').drawImage(trimmedCanvas, 0, 0, w, h);
+
                     canvas.toBlob((webpBlob) => {
                         const cleanName = originalName.replace(/\.[^/.]+$/, "") + ".webp";
                         resolve(new File([webpBlob], cleanName, { type: 'image/webp' }));
