@@ -41,15 +41,15 @@
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider mb-2">Foto de la Prenda {% if not producto %}*{% endif %}</label>
                 <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <div class="w-28 h-36 bg-neutral-100 border border-neutral-200 overflow-hidden shrink-0 flex items-center justify-center">
+                    <div class="w-28 h-36 bg-[#F4F5F7] border border-neutral-200 overflow-hidden shrink-0 flex items-center justify-center p-2">
                         <img id="preview-img" src="{% if producto and producto.imagen %}{{ producto.imagen.url }}{% endif %}" alt=""
-                            class="w-full h-full object-cover {% if not producto or not producto.imagen %}hidden{% endif %}">
+                            class="w-full h-full object-contain drop-shadow-[0_6px_10px_rgba(0,0,0,0.15)] {% if not producto or not producto.imagen %}hidden{% endif %}">
                         <span id="preview-placeholder" class="text-[11px] text-neutral-400 text-center px-2 {% if producto and producto.imagen %}hidden{% endif %}">Sin foto</span>
                     </div>
                     <div class="flex-1">
                         <input type="file" name="imagen" id="imagen-input" accept="image/*" {% if not producto %}required{% endif %}
                             class="block w-full text-xs text-neutral-600 file:mr-4 file:py-2.5 file:px-4 file:border-0 file:text-xs file:font-bold file:uppercase file:bg-black file:text-white hover:file:bg-neutral-800 cursor-pointer">
-                        <p class="text-[11px] text-neutral-400 mt-2">Puedes tomar foto directo desde tu celular o elegir de tu galería.</p>
+                        <p id="status-foto" class="text-[11px] text-neutral-400 mt-2">Al elegir una foto, se recortará el fondo y optimizará automáticamente antes de subir.</p>
                     </div>
                 </div>
             </div>
@@ -154,19 +154,75 @@
         </form>
     </main>
 
-    <script>
+    <script type="module">
+        import { removeBackground } from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm';
+
         const input = document.getElementById('imagen-input');
         const preview = document.getElementById('preview-img');
         const placeholder = document.getElementById('preview-placeholder');
+        const statusFoto = document.getElementById('status-foto');
+        const form = input.closest('form');
+        const submitBtn = form.querySelector('button[type="submit"]');
 
-        input.addEventListener('change', (e) => {
+        input.addEventListener('change', async (e) => {
             const file = e.target.files[0];
-            if (file) {
+            if (!file) return;
+
+            const textoOriginal = submitBtn.innerText;
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Recortando fondo...';
+            statusFoto.textContent = 'Quitando fondo y optimizando peso para la web, espera unos segundos...';
+            statusFoto.classList.remove('text-neutral-400', 'text-emerald-600');
+            statusFoto.classList.add('text-amber-600', 'font-semibold');
+
+            try {
+                const blobSinFondo = await removeBackground(file);
+                const webpFile = await optimizarAWebP(blobSinFondo, file.name, 900, 0.85);
+
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(webpFile);
+                input.files = dataTransfer.files;
+
+                preview.src = URL.createObjectURL(webpFile);
+                statusFoto.textContent = `Listo: fondo eliminado y optimizado (${Math.round(webpFile.size / 1024)} KB).`;
+                statusFoto.classList.remove('text-amber-600');
+                statusFoto.classList.add('text-emerald-600');
+            } catch (err) {
+                console.error('Error al recortar fondo:', err);
                 preview.src = URL.createObjectURL(file);
+                statusFoto.textContent = 'No se pudo recortar el fondo automáticamente; se usará la foto original.';
+                statusFoto.classList.remove('text-amber-600');
+                statusFoto.classList.add('text-neutral-500');
+            } finally {
                 preview.classList.remove('hidden');
                 if (placeholder) placeholder.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerText = textoOriginal;
             }
         });
+
+        function optimizarAWebP(blob, originalName, maxWidth, quality) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxWidth) {
+                        h = Math.round((h * maxWidth) / w);
+                        w = maxWidth;
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    canvas.toBlob((webpBlob) => {
+                        const cleanName = originalName.replace(/\.[^/.]+$/, "") + ".webp";
+                        resolve(new File([webpBlob], cleanName, { type: 'image/webp' }));
+                    }, 'image/webp', quality);
+                };
+                img.src = URL.createObjectURL(blob);
+            });
+        }
     </script>
 </body>
 </html>

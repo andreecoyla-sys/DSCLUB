@@ -68,3 +68,16 @@ html.dark ::-webkit-scrollbar-thumb:hover {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+/* Adaptación de prendas sin fondo al tema claro y oscuro */
+#product-grid img,
+#modal-img {
+    object-fit: contain !important;
+    filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.14));
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+html.dark #product-grid img,
+html.dark #modal-img {
+    filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.65));
+}

@@ -45,6 +45,9 @@ def inicio(request):
         activo=True,
         stock__gt=0,
         categoria__activa=True
+    ).only(
+        'id', 'etiqueta', 'nombre', 'precio', 'precio_anterior',
+        'stock', 'tallas', 'imagen', 'descripcion', 'categoria__nombre'
     )
 
     tallas_en_stock = []
@@ -449,6 +452,8 @@ def panel_editar(request, pk):
             producto.precio_anterior = None
 
         if request.FILES.get('imagen'):
+            if producto.imagen:
+                producto.imagen.delete(save=False)
             producto.imagen = request.FILES['imagen']
 
         producto.save()
@@ -487,6 +492,8 @@ def panel_eliminar(request, pk):
     if request.method == 'POST':
         producto = get_object_or_404(Producto, pk=pk)
         nombre = producto.nombre
+        if producto.imagen:
+            producto.imagen.delete(save=False)
         producto.delete()
         messages.success(request, f'Se eliminó "{nombre}".')
     return redirect(request.META.get('HTTP_REFERER') or 'panel_lista')
