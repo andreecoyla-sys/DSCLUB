@@ -17,6 +17,8 @@ urlpatterns = [
     path('panel/editar/<int:pk>/', views.panel_editar, name='panel_editar'),
     path('panel/stock/<int:pk>/<str:accion>/', views.panel_stock_rapido, name='panel_stock_rapido'),
     path('panel/eliminar/<int:pk>/', views.panel_eliminar, name='panel_eliminar'),
+    path('panel/recorte-masivo/', views.panel_recorte_masivo, name='panel_recorte_masivo'),
+    path('panel/recorte-masivo/<int:pk>/', views.panel_actualizar_imagen_lote, name='panel_actualizar_imagen_lote'),
 ]
 
 if settings.DEBUG:

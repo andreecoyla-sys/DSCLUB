@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recorte Masivo · DSCLUB</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-neutral-950 text-white min-h-screen flex items-center justify-center p-6">
+    <div class="max-w-xl w-full bg-neutral-900 border border-neutral-800 p-6 space-y-5">
+        <div class="flex items-center justify-between">
+            <h1 class="text-sm font-bold uppercase tracking-widest">Recorte Automático en Lote</h1>
+            <a href="{% url 'panel_lista' %}" class="text-xs text-neutral-400 hover:text-white underline">Volver al panel</a>
+        </div>
+
+        <p class="text-xs text-neutral-400 leading-relaxed">
+            Tu navegador descargará cada imagen pendiente (<strong class="text-white">{{ total }}</strong> prendas), eliminará su fondo con IA, la convertirá a WebP ligero y la guardará en el servidor. No cierres esta pestaña hasta finalizar.
+        </p>
+
+        <div class="space-y-2">
+            <div class="flex justify-between text-xs font-semibold">
+                <span id="status-text">Listo para iniciar</span>
+                <span id="counter-text">0 / {{ total }}</span>
+            </div>
+            <div class="w-full h-2 bg-neutral-800 overflow-hidden">
+                <div id="progress-bar" class="h-full bg-emerald-500 w-0 transition-all duration-300"></div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <img id="preview-img" src="" alt="" class="w-20 h-24 object-contain bg-neutral-800 border border-neutral-700 hidden">
+            <div id="log-box" class="flex-1 h-24 overflow-y-auto bg-black/50 p-2.5 text-[11px] font-mono text-neutral-300 space-y-1">
+                <div>Esperando inicio...</div>
+            </div>
+        </div>
+
+        {% csrf_token %}
+        <button id="start-btn" type="button"
+            class="w-full bg-white text-black py-3 text-xs font-bold uppercase tracking-widest hover:bg-neutral-200 transition-colors cursor-pointer disabled:opacity-50">
+            Iniciar recorte de {{ total }} prendas
+        </button>
+    </div>
+
+    <script id="items-data" type="application/json">{{ items_json|safe }}</script>
+
+    <script type="module">
+        import { removeBackground } from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm';
+
+        const ITEMS = JSON.parse(document.getElementById('items-data').textContent || '[]');
+        const startBtn = document.getElementById('start-btn');
+        const statusText = document.getElementById('status-text');
+        const counterText = document.getElementById('counter-text');
+        const progressBar = document.getElementById('progress-bar');
+        const previewImg = document.getElementById('preview-img');
+        const logBox = document.getElementById('log-box');
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        function addLog(msg, isError = false) {
+            const line = document.createElement('div');
+            line.className = isError ? 'text-red-400' : 'text-neutral-300';
+            line.textContent = msg;
+            logBox.prepend(line);
+        }
+
+        async function blobToWebpFile(blob, baseName) {
+            const bitmap = await createImageBitmap(blob);
+            const maxSide = 1200;
+            let w = bitmap.width;
+            let h = bitmap.height;
+            if (w > maxSide || h > maxSide) {
+                const ratio = Math.min(maxSide / w, maxSide / h);
+                w = Math.round(w * ratio);
+                h = Math.round(h * ratio);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(bitmap, 0, 0, w, h);
+            bitmap.close();
+
+            const webpBlob = await new Promise(res => canvas.toBlob(res, 'image/webp', 0.85));
+            return new File([webpBlob], `${baseName}.webp`, { type: 'image/webp' });
+        }
+
+        startBtn.addEventListener('click', async () => {
+            if (!ITEMS.length) {
+                addLog('No hay prendas pendientes por recortar.');
+                return;
+            }
+            startBtn.disabled = true;
+            startBtn.textContent = 'Procesando... No cierres la ventana';
+
+            for (let i = 0; i < ITEMS.length; i++) {
+                const item = ITEMS[i];
+                statusText.textContent = `Procesando: ${item.nombre}`;
+                counterText.textContent = `${i + 1} / ${ITEMS.length}`;
+                progressBar.style.width = `${Math.round(((i + 1) / ITEMS.length) * 100)}%`;
+
+                try {
+                    const imgRes = await fetch(item.url);
+                    const origBlob = await imgRes.blob();
+                    const transparentBlob = await removeBackground(origBlob);
+                    const webpFile = await blobToWebpFile(transparentBlob, `prenda_${item.id}`);
+
+                    const previewUrl = URL.createObjectURL(webpFile);
+                    previewImg.src = previewUrl;
+                    previewImg.classList.remove('hidden');
+
+                    const formData = new FormData();
+                    formData.append('imagen', webpFile);
+
+                    const uploadRes = await fetch(`/panel/recorte-masivo/${item.id}/`, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrfToken },
+                        body: formData
+                    });
+                    const data = await uploadRes.json();
+
+                    if (data.ok) {
+                        addLog(`✓ [${i + 1}/${ITEMS.length}] ${item.nombre} (${Math.round(webpFile.size / 1024)} KB)`);
+                    } else {
+                        addLog(`✕ Error en ${item.nombre}: ${data.error}`, true);
+                    }
+                    URL.revokeObjectURL(previewUrl);
+                } catch (err) {
+                    addLog(`✕ Fallo en ${item.nombre}: ${err.message}`, true);
+                }
+            }
+
+            statusText.textContent = '¡Proceso completado!';
+            startBtn.textContent = 'Finalizado';
+            addLog('Todas las prendas pendientes fueron procesadas.');
+        });
+    </script>
+</body>
+</html>
